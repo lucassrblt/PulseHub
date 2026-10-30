@@ -51,7 +51,7 @@ const MAX_UINT32 = UINT32_RANGE - 1;
 const HELP_FLAG = "help";
 const MAX_HZ = 1000;
 const MAX_TICK_MS = 1000;
-const HELP_COLUMN_WIDTH = 30;
+const HELP_COLUMN_WIDTH = 32;
 
 function integerIn(min: number, max: number): Parser<number> {
   return {
