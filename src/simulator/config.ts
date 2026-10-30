@@ -20,6 +20,8 @@ export interface SimulatorConfig {
   readonly faultStop: number;
   readonly stopIds: readonly number[];
   readonly stopAfterMs: number;
+  readonly hotIds: readonly number[];
+  readonly hotAfterMs: number;
 }
 
 /** What the command line asks for: print help, or run with a config. */
@@ -195,6 +197,18 @@ export const FIELDS = {
     parser: integerIn(0, MAX_UINT32),
     description: "delay before stopped devices go silent",
   },
+  hotIds: {
+    flag: "hot-ids",
+    fallback: [],
+    parser: deviceIdList,
+    description: "ids of the devices that overheat and stay hot",
+  },
+  hotAfterMs: {
+    flag: "hot-after-ms",
+    fallback: 5000,
+    parser: integerIn(0, MAX_UINT32),
+    description: "delay before hot devices start heating up",
+  },
 } satisfies { [K in keyof SimulatorConfig]: Field<SimulatorConfig[K]> };
 
 const ALL_FIELDS: readonly Field<unknown>[] = Object.values(FIELDS);
@@ -224,8 +238,10 @@ export function parseCli(argv: readonly string[], env: Env): Result<CliCommand, 
       faultStop: read(FIELDS.faultStop),
       stopIds: read(FIELDS.stopIds),
       stopAfterMs: read(FIELDS.stopAfterMs),
+      hotIds: read(FIELDS.hotIds),
+      hotAfterMs: read(FIELDS.hotAfterMs),
     };
-    checkStopTargets(config);
+    checkTargets(config);
     return ok({ kind: "run", config });
   } catch (error) {
     if (error instanceof ConfigError) {
@@ -272,12 +288,17 @@ function readField<T>(field: Field<T>, values: Record<string, unknown>, env: Env
   return value;
 }
 
-function checkStopTargets(config: SimulatorConfig): void {
+function checkTargets(config: SimulatorConfig): void {
   if (config.faultStop > config.devices) {
     throw new ConfigError(`Invalid --fault-stop ${config.faultStop}: only ${config.devices} devices`);
   }
-  const unknown = config.stopIds.find((id) => id > config.devices);
+  requireExistingIds(FIELDS.stopIds.flag, config.stopIds, config.devices);
+  requireExistingIds(FIELDS.hotIds.flag, config.hotIds, config.devices);
+}
+
+function requireExistingIds(flag: string, ids: readonly number[], devices: number): void {
+  const unknown = ids.find((id) => id > devices);
   if (unknown !== undefined) {
-    throw new ConfigError(`Invalid --stop-ids: device ${unknown} does not exist`);
+    throw new ConfigError(`Invalid --${flag}: device ${unknown} does not exist`);
   }
 }

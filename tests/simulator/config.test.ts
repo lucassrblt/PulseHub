@@ -27,12 +27,21 @@ describe("parseCli", () => {
       faultStop: 0,
       stopIds: [],
       stopAfterMs: 10000,
+      hotIds: [],
+      hotAfterMs: 5000,
     });
   });
 
   it("reads flags", () => {
     const config = configOf(["--devices", "3", "--hz", "2.5", "--fault-dup", "0.1", "--stop-ids", "1,3"]);
     expect(config).toMatchObject({ devices: 3, hz: 2.5, faultDup: 0.1, stopIds: [1, 3] });
+  });
+
+  it("reads the hot devices", () => {
+    expect(configOf(["--hot-ids", "2, 4", "--hot-after-ms", "1500"])).toMatchObject({
+      hotIds: [2, 4],
+      hotAfterMs: 1500,
+    });
   });
 
   it("reads env variables and lets flags override them", () => {
@@ -45,6 +54,7 @@ describe("parseCli", () => {
     const parsed = parseCli(["--help"], {});
     expect(parsed.ok && parsed.value.kind).toBe("help");
     expect(usage()).toContain("--fault-checksum");
+    expect(usage()).toContain("--hot-ids");
   });
 
   it.each([
@@ -56,6 +66,9 @@ describe("parseCli", () => {
     [["--seq-start", "4294967296"], "--seq-start"],
     [["--devices", "5", "--fault-stop", "6"], "--fault-stop"],
     [["--devices", "5", "--stop-ids", "2,9"], "--stop-ids"],
+    [["--devices", "5", "--hot-ids", "2,9"], "--hot-ids"],
+    [["--hot-ids", "1,x"], "--hot-ids"],
+    [["--hot-after-ms", "-1"], "--hot-after-ms"],
     [["--unknown", "1"], "unknown"],
   ])("rejects %j", (argv, mention) => {
     expect(errorOf(argv)).toContain(mention);
