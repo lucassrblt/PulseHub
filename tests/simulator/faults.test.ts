@@ -3,6 +3,7 @@ import { FRAME_TYPE, METRIC_ID, decodeFrame, type Frame } from "../../src/protoc
 import { AnomalyFault } from "../../src/simulator/faults/anomaly.js";
 import { ChecksumFault } from "../../src/simulator/faults/checksum.js";
 import { DuplicateFault } from "../../src/simulator/faults/duplicate.js";
+import { HotFault } from "../../src/simulator/faults/hot.js";
 import { RebootFault } from "../../src/simulator/faults/reboot.js";
 import { ReorderFault } from "../../src/simulator/faults/reorder.js";
 import { runStages, toDatagram, type Datagram } from "../../src/simulator/faults/stage.js";
@@ -103,6 +104,47 @@ describe("StopFault", () => {
     expect(new Set(ids).size).toBe(5);
     ids.forEach((id) => expect(id).toBeGreaterThanOrEqual(1));
     ids.forEach((id) => expect(id).toBeLessThanOrEqual(10));
+  });
+});
+
+describe("HotFault", () => {
+  const HOT_AT_MS = 5000;
+
+  function temperatureOf(datagrams: Datagram[]): number | undefined {
+    const decoded = decodeFrame(datagrams[0]?.bytes ?? new Uint8Array());
+    return decoded.ok ? decoded.value.measurements[0]?.value : undefined;
+  }
+
+  it("leaves the temperature untouched before the hot time", () => {
+    const clock = new FakeClock(HOT_AT_MS - 1);
+    const fault = new HotFault(new Set([2]), HOT_AT_MS, clock);
+    expect(temperatureOf(fault.apply(telemetry(2, 0)))).toBe(4000);
+    expect(fault.injected).toBe(0);
+  });
+
+  it("ramps the temperature up after the hot time", () => {
+    const clock = new FakeClock(HOT_AT_MS + 1000);
+    const fault = new HotFault(new Set([2]), HOT_AT_MS, clock);
+    expect(temperatureOf(fault.apply(telemetry(2, 0)))).toBe(6000);
+    expect(fault.injected).toBe(1);
+  });
+
+  it("holds the target temperature once reached", () => {
+    const clock = new FakeClock(HOT_AT_MS + 60_000);
+    const fault = new HotFault(new Set([2]), HOT_AT_MS, clock);
+    expect(temperatureOf(fault.apply(telemetry(2, 0)))).toBe(8500);
+  });
+
+  it("does not heat other devices", () => {
+    const clock = new FakeClock(HOT_AT_MS + 60_000);
+    const datagram = telemetry(1, 0);
+    expect(new HotFault(new Set([2]), HOT_AT_MS, clock).apply(datagram)).toEqual([datagram]);
+  });
+
+  it("leaves heartbeats untouched", () => {
+    const clock = new FakeClock(HOT_AT_MS + 60_000);
+    const heartbeat = toDatagram({ ...telemetry(2, 0).frame, type: FRAME_TYPE.HEARTBEAT, measurements: [] });
+    expect(new HotFault(new Set([2]), HOT_AT_MS, clock).apply(heartbeat)).toEqual([heartbeat]);
   });
 });
 
