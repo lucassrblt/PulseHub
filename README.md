@@ -374,8 +374,6 @@ Le dashboard montre deux natures de chiffres : les chiffres clés (reçues, perd
 - **Mon rôle** : j'ai pris toutes les décisions de conception, relu le code, et corrigé ou fait corriger les erreurs trouvées. Exemple : la température était décodée en dixièmes de degré au lieu de centièmes ; le bug a été repéré en relecture et corrigé dans le commit `fix(hub): decode temperature as hundredths of a degree`.
 - Chaque ligne livrée peut être expliquée en soutenance.
 
-> À relire et compléter par l'auteur.
-
 ## Bonus réalisés
 
 Bonus du sujet :
