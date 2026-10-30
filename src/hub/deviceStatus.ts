@@ -1,4 +1,4 @@
-import type { Clock } from "./clock.js";
+import type { Clock } from "../shared/time.js";
 import type { DeviceState } from "./deviceRegistry.js";
 import { worstLevel, type HealthLevel } from "./health.js";
 import type { StatusRule } from "./statusRules.js";

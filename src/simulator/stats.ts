@@ -1,6 +1,5 @@
 import type { FaultCounter } from "./faults/stage.js";
-import { MS_PER_SECOND } from "./limits.js";
-import type { Clock } from "./ports.js";
+import { MS_PER_SECOND, type Clock } from "../shared/time.js";
 
 /** Formats the send rate and the injected fault counts. */
 export class StatsReporter {

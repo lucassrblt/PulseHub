@@ -1,5 +1,4 @@
-import { FRAME_TYPE, type Frame, type Measurement } from "../protocol/index.js";
-import { UINT32_RANGE } from "./limits.js";
+import { FRAME_TYPE, UINT32_RANGE, type Frame, type Measurement } from "../protocol/index.js";
 import type { Random } from "./ports.js";
 import { stepWalk, type MetricWalk } from "./walk.js";
 

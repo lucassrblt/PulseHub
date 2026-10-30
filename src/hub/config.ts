@@ -1,3 +1,5 @@
+import { ConfigError, MAX_PORT, MIN_PORT } from "../shared/config.js";
+
 /** Typed, validated runtime settings of the hub. */
 export interface HubConfig {
   readonly hubPort: number;
@@ -28,8 +30,6 @@ interface IntegerSetting {
   readonly max: number;
 }
 
-const MIN_PORT = 1;
-const MAX_PORT = 65535;
 const MIN_DURATION_MS = 1;
 const MAX_DURATION_MS = 86_400_000;
 const MAX_WINDOW_MS = 60_000;
@@ -60,11 +60,6 @@ const SETTINGS = {
   rebootUptimeDropMs: { key: "REBOOT_UPTIME_DROP_MS", fallback: 1000, min: MIN_DURATION_MS, max: MAX_DURATION_MS },
   maxSeqGap: { key: "MAX_SEQ_GAP", fallback: 1000, min: MIN_SEQ_GAP, max: MAX_SEQ_GAP },
 } as const satisfies Record<keyof HubConfig, IntegerSetting>;
-
-/** Raised at startup when an environment variable holds an invalid value. */
-export class ConfigError extends Error {
-  override readonly name = "ConfigError";
-}
 
 /** Reads the hub settings from the environment, applying defaults and validating every value. */
 export function loadConfig(env: EnvSource): HubConfig {

@@ -1,3 +1,4 @@
+import { MS_PER_SECOND, intervalTimer, monotonicClock, type Clock } from "../shared/time.js";
 import { parseCli, usage, type SimulatorConfig } from "./config.js";
 import { createDevices } from "./device.js";
 import { AnomalyFault } from "./faults/anomaly.js";
@@ -8,11 +9,10 @@ import { RebootFault } from "./faults/reboot.js";
 import { ReorderFault } from "./faults/reorder.js";
 import type { FaultStage } from "./faults/stage.js";
 import { StopFault, pickStoppedIds } from "./faults/stop.js";
-import { MS_PER_SECOND } from "./limits.js";
-import type { Clock, Random } from "./ports.js";
+import type { Random } from "./ports.js";
 import { Simulator } from "./simulator.js";
 import { StatsReporter } from "./stats.js";
-import { intervalTimer, mathRandom, systemClock } from "./system.js";
+import { mathRandom } from "./system.js";
 import { UdpSender } from "./udp-sender.js";
 import { NOMINAL_WALKS } from "./walk.js";
 
@@ -58,7 +58,7 @@ function summary(config: SimulatorConfig, ids: readonly number[]): string {
 }
 
 function run(config: SimulatorConfig): void {
-  const clock = systemClock;
+  const clock = monotonicClock;
   const random = mathRandom;
   const ids = stoppedIds(config, random);
   const stages = buildStages(config, ids, random, clock);

@@ -1,5 +1,5 @@
 import type { FleetSnapshot, SnapshotProvider } from "../fleetSummary.js";
-import type { Cancel, Timer } from "../timer.js";
+import type { Cancel, Timer } from "../../shared/time.js";
 import { HTTP_STATUS } from "./httpStatus.js";
 
 const SSE_HEADERS = {

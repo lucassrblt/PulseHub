@@ -37,6 +37,9 @@ export const MIN_FRAME_SIZE = HEADER_SIZE + CHECKSUM_SIZE;
 /** Largest accepted datagram. */
 export const MAX_FRAME_SIZE = 512;
 
+/** Number of distinct uint32 values; seq and uptimeMs wrap at this value. */
+export const UINT32_RANGE = 2 ** 32;
+
 /** Smallest valid device identifier. */
 export const MIN_DEVICE_ID = 1;
 

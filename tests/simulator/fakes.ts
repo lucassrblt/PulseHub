@@ -1,4 +1,5 @@
-import type { Cancel, Clock, DatagramSender, Random, Timer } from "../../src/simulator/ports.js";
+import type { Cancel, Clock, Timer } from "../../src/shared/time.js";
+import type { DatagramSender, Random } from "../../src/simulator/ports.js";
 
 /** Deterministic pseudo-random generator (mulberry32) for reproducible tests. */
 export function seededRandom(seed: number): Random {

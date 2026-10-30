@@ -1,6 +1,4 @@
-import type { Clock } from "./clock.js";
-
-const MS_PER_SECOND = 1000;
+import { MS_PER_SECOND, type Clock } from "../shared/time.js";
 
 interface Sample {
   readonly atMs: number;

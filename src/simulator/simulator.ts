@@ -1,6 +1,7 @@
 import type { Device } from "./device.js";
 import { runStages, toDatagram, type DeviceFault, type FaultStage } from "./faults/stage.js";
-import type { Cancel, Clock, DatagramSender, Timer } from "./ports.js";
+import type { Cancel, Clock, Timer } from "../shared/time.js";
+import type { DatagramSender } from "./ports.js";
 
 /** Collaborators and timing of a simulation run. */
 export interface SimulatorDeps {

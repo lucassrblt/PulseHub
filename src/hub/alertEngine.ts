@@ -1,5 +1,5 @@
 import type { AlertRule } from "./alertRules.js";
-import type { Clock } from "./clock.js";
+import type { Clock } from "../shared/time.js";
 import type { HubConfig } from "./config.js";
 import type { DeviceState } from "./deviceRegistry.js";
 import { isOffline } from "./deviceStatus.js";

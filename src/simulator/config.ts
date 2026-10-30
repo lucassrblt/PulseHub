@@ -1,6 +1,7 @@
 import { parseArgs } from "node:util";
-import { err, ok, type Result } from "../protocol/index.js";
-import { MAX_DEVICE_ID, MAX_PORT, MAX_TOTAL_FPS, UINT32_RANGE } from "./limits.js";
+import { UINT32_RANGE, err, ok, type Result } from "../protocol/index.js";
+import { ConfigError, MAX_PORT, MIN_PORT, parseInteger } from "../shared/config.js";
+import { MAX_DEVICE_ID, MAX_TOTAL_FPS } from "./limits.js";
 
 /** Validated simulator settings. */
 export interface SimulatorConfig {
@@ -45,9 +46,6 @@ interface Field<T> {
   readonly description: string;
 }
 
-class ConfigError extends Error {}
-
-const DECIMAL_INTEGER = /^\d+$/;
 const DECIMAL_NUMBER = /^\d+(\.\d+)?$/;
 const MAX_UINT32 = UINT32_RANGE - 1;
 const HELP_FLAG = "help";
@@ -58,10 +56,7 @@ const HELP_COLUMN_WIDTH = 32;
 function integerIn(min: number, max: number): Parser<number> {
   return {
     expected: `an integer between ${min} and ${max}`,
-    parse: (raw) => {
-      const value = Number(raw);
-      return DECIMAL_INTEGER.test(raw) && value >= min && value <= max ? value : undefined;
-    },
+    parse: (raw) => parseInteger(raw, min, max),
   };
 }
 
@@ -122,7 +117,7 @@ export const FIELDS = {
     flag: "port",
     env: "SIM_PORT",
     fallback: 9000,
-    parser: integerIn(1, MAX_PORT),
+    parser: integerIn(MIN_PORT, MAX_PORT),
     description: "hub UDP port",
   },
   heartbeatEvery: {

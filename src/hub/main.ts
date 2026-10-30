@@ -1,8 +1,8 @@
 import { fileURLToPath } from "node:url";
 import { decodeFrame } from "../protocol/index.js";
+import { intervalTimer, systemClock } from "../shared/time.js";
 import { AlertEngine } from "./alertEngine.js";
 import { buildAlertRules } from "./alertRules.js";
-import { systemClock } from "./clock.js";
 import { loadConfig } from "./config.js";
 import { DeviceRegistry } from "./deviceRegistry.js";
 import { DeviceStatusEvaluator } from "./deviceStatus.js";
@@ -18,7 +18,6 @@ import { formatStatusLine } from "./statusLine.js";
 import { startAll } from "./startup.js";
 import { buildStatusRules } from "./statusRules.js";
 import { buildOutOfRangePredicate } from "./thresholds.js";
-import { intervalTimer } from "./timer.js";
 import { UdpReceiver } from "./udpReceiver.js";
 
 const STATUS_LINE_INTERVAL_MS = 2000;

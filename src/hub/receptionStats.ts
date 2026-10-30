@@ -1,5 +1,5 @@
 import type { DecodeErrorReason } from "../protocol/index.js";
-import type { Clock } from "./clock.js";
+import type { Clock } from "../shared/time.js";
 import type { HubConfig } from "./config.js";
 import { levelFromThresholds, worstLevel, type HealthLevel } from "./health.js";
 import { RateMeter } from "./rateMeter.js";

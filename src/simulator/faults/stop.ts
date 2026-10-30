@@ -1,4 +1,5 @@
-import type { Clock, Random } from "../ports.js";
+import type { Clock } from "../../shared/time.js";
+import type { Random } from "../ports.js";
 import { randomInt } from "../random.js";
 import type { Datagram, FaultStage } from "./stage.js";
 

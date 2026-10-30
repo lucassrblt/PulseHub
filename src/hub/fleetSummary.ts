@@ -1,5 +1,5 @@
 import type { ActiveAlert, AlertSource } from "./alertEngine.js";
-import type { Clock } from "./clock.js";
+import type { Clock } from "../shared/time.js";
 import type { DeviceSource, DeviceState } from "./deviceRegistry.js";
 import type { DeviceStatus, DeviceStatusPolicy } from "./deviceStatus.js";
 import type { ReceptionSource, ReceptionSummary } from "./receptionStats.js";

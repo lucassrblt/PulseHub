@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ConfigError, loadConfig } from "../../src/hub/config.js";
+import { loadConfig } from "../../src/hub/config.js";
+import { ConfigError } from "../../src/shared/config.js";
 
 describe("loadConfig", () => {
   it("applies the defaults when the environment is empty", () => {

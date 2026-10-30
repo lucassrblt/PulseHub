@@ -1,12 +1,11 @@
-import type { Frame } from "../protocol/index.js";
+import { UINT32_RANGE, type Frame } from "../protocol/index.js";
 import type { HubConfig } from "./config.js";
 
-const SEQ_MODULUS = 2 ** 32;
 const HALF_SEQ_RANGE = 2 ** 31;
 
 /** Steps from one uint32 seq to the next one, modulo 2^32 (RFC 1982 serial number arithmetic). */
 export function forwardDistance(from: number, to: number): number {
-  return (to - from + SEQ_MODULUS) % SEQ_MODULUS;
+  return (to - from + UINT32_RANGE) % UINT32_RANGE;
 }
 
 /** Accepted frame: lost frames in the gap before it, and whether a reboot or a resync reset the baseline. */
@@ -60,7 +59,7 @@ export class Sequencer implements FrameSequencer {
       return { kind: "duplicate" };
     }
     const isBackward = distance >= HALF_SEQ_RANGE;
-    const gap = isBackward ? SEQ_MODULUS - distance : distance;
+    const gap = isBackward ? UINT32_RANGE - distance : distance;
     if (gap > this.settings.maxSeqGap) {
       return this.accept(frame, 0, { ...NO_RESET, resynced: true });
     }

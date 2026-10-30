@@ -1,5 +1,5 @@
 import type { Frame } from "../protocol/index.js";
-import type { Clock } from "./clock.js";
+import type { Clock } from "../shared/time.js";
 import { NO_READINGS, readingsOf, type DeviceReadings } from "./readings.js";
 import type { SequenceVerdict } from "./sequencer.js";
 import type { ReadingPredicate } from "./thresholds.js";

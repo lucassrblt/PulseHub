@@ -1,6 +1,5 @@
 import { METRIC_ID } from "../../protocol/index.js";
-import { MS_PER_SECOND } from "../limits.js";
-import type { Clock } from "../ports.js";
+import { MS_PER_SECOND, type Clock } from "../../shared/time.js";
 import { toDatagram, type Datagram, type FaultStage } from "./stage.js";
 
 /** How a hot device heats up, in hundredths of °C. */
