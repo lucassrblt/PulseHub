@@ -13,6 +13,10 @@ const MS_PER_SECOND = 1000;
 const SECONDS_PER_MINUTE = 60;
 const SECONDS_PER_HOUR = 3600;
 const RATE_DECIMALS = 1;
+const TEMPERATURE_DECIMALS = 1;
+const ELECTRIC_DECIMALS = 2;
+const MILLI_PER_UNIT = 1000;
+const NO_VALUE = "—";
 
 function byId(id) {
   return document.getElementById(id);
@@ -77,8 +81,87 @@ function renderReception(snapshot) {
   );
 }
 
+function renderFleet(fleet) {
+  byId("fleet").replaceChildren(
+    stat("total", fleet.total),
+    stat("online", fleet.online),
+    stat("ok", fleet.ok, "ok"),
+    stat("warn", fleet.warn, "warn"),
+    stat("crit", fleet.crit, "crit"),
+    stat("offline", fleet.offline, "offline"),
+  );
+}
+
+function listOrEmpty(list, items, emptyText) {
+  list.replaceChildren(...(items.length > 0 ? items : [element("li", "empty", emptyText)]));
+}
+
+function alertItem(alert) {
+  const item = element("li", "alert");
+  item.append(
+    element("span", "device-id", `#${alert.deviceId}`),
+    element("span", "grow", alert.label),
+    element("span", "value", `${Math.floor(alert.durationMs / MS_PER_SECOND)} s`),
+  );
+  return item;
+}
+
+function renderAlerts(alerts) {
+  byId("alert-count").textContent = String(alerts.length);
+  listOrEmpty(byId("alerts"), alerts.map(alertItem), "No active alerts");
+}
+
+function formatReading(value, decimals, unit) {
+  return value === null ? NO_VALUE : `${value.toFixed(decimals)} ${unit}`;
+}
+
+function formatTemperature(temperatureC) {
+  return formatReading(temperatureC, TEMPERATURE_DECIMALS, "°C");
+}
+
+function formatMilli(milli, unit) {
+  return formatReading(milli === null ? null : milli / MILLI_PER_UNIT, ELECTRIC_DECIMALS, unit);
+}
+
+function hottestItem(device) {
+  const item = element("li", `status-${device.status.toLowerCase()}`);
+  item.append(
+    element("span", "device-id", `#${device.deviceId}`),
+    element("span", "grow card-status", device.status),
+    element("span", "value", formatTemperature(device.temperatureC)),
+  );
+  return item;
+}
+
+function renderHottest(hottest) {
+  listOrEmpty(byId("hottest"), hottest.map(hottestItem), "No readings yet");
+}
+
+function deviceCard(device, generatedAt) {
+  const card = element("article", `card status-${device.status.toLowerCase()}`);
+  const head = element("div", "card-head");
+  head.append(element("span", "", `#${device.deviceId}`), element("span", "card-status", device.status));
+  card.append(
+    head,
+    element("div", "card-temp", formatTemperature(device.temperatureC)),
+    element("div", "card-line", `${formatMilli(device.voltageMv, "V")} · ${formatMilli(device.currentMa, "A")}`),
+    element("div", "card-line", `seen ${formatDuration(generatedAt - device.lastSeenMs)} ago`),
+    element("div", "card-line", `lost ${device.lost} · dup ${device.duplicates} · late ${device.late} · reboots ${device.reboots}`),
+  );
+  return card;
+}
+
+function renderDevices(snapshot) {
+  const cards = snapshot.devices.map((device) => deviceCard(device, snapshot.generatedAt));
+  byId("devices").replaceChildren(...(cards.length > 0 ? cards : [element("p", "card-line", "Waiting for devices")]));
+}
+
 function render(snapshot) {
   renderReception(snapshot);
+  renderFleet(snapshot.fleet);
+  renderAlerts(snapshot.alerts);
+  renderHottest(snapshot.hottest);
+  renderDevices(snapshot);
 }
 
 function setConnection(live) {
