@@ -1,47 +1,46 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>PulseHub</title>
+    <title>PulseHub, régie</title>
+    <link rel="preload" href="/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/barlow-semi-condensed-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/style.css">
   </head>
   <body>
-    <header class="topbar">
+    <header class="masthead">
       <h1>PulseHub</h1>
-      <span id="connection" class="connection lost">CONNECTING</span>
-      <span class="uptime">Hub uptime <strong id="uptime">0s</strong></span>
+      <p id="connection" class="connection" data-state="pending">Connexion au hub…</p>
     </header>
     <main>
-      <section class="panel">
-        <div class="panel-head">
-          <h2>Reception</h2>
-          <span id="health" class="badge level-ok">OK</span>
-        </div>
-        <div id="reception-stats" class="stats"></div>
-        <h3>Invalid by reason</h3>
-        <div id="invalid-reasons" class="stats compact"></div>
+      <section class="summary" aria-labelledby="headline">
+        <p id="headline" class="headline" aria-live="polite">En attente de trames sur le port UDP…</p>
+        <p id="fleet-line" class="fleet-line"></p>
+        <ul id="figures" class="figures"></ul>
       </section>
-      <section class="panel">
-        <h2>Fleet</h2>
-        <div id="fleet" class="stats counters"></div>
+      <section class="bridge" aria-labelledby="bridge-title">
+        <h2 id="bridge-title">Appareils</h2>
+        <div id="strips" class="strips"></div>
+        <p id="no-device" class="quiet">Chaque appareil apparaîtra ici dès sa première trame.</p>
       </section>
-      <div class="columns">
-        <section class="panel">
-          <div class="panel-head">
-            <h2>Active alerts</h2>
-            <span id="alert-count" class="count">0</span>
-          </div>
-          <ul id="alerts" class="list"></ul>
+      <div class="split">
+        <section class="cues" aria-labelledby="alerts-title">
+          <h2 id="alerts-title">Alertes</h2>
+          <ol id="alerts" class="cue-list"></ol>
+          <p id="no-alert" class="quiet">Aucune alerte en cours</p>
         </section>
-        <section class="panel">
-          <h2>Top 5 hottest</h2>
-          <ol id="hottest" class="list"></ol>
+        <section class="detail" aria-labelledby="detail-title">
+          <h2 id="detail-title">Détail appareil</h2>
+          <p id="detail-name" class="detail-name">Aucun appareil sélectionné</p>
+          <dl id="detail" class="detail-grid"></dl>
         </section>
       </div>
-      <section class="panel">
-        <h2>Devices</h2>
-        <div id="devices" class="grid"></div>
+      <section class="reasons" aria-labelledby="reasons-title">
+        <h2 id="reasons-title">Invalides par motif</h2>
+        <table class="reason-table">
+          <tbody id="reasons"></tbody>
+        </table>
       </section>
     </main>
     <script src="/app.js"></script>
