@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PulseHub</title>
+    <link rel="stylesheet" href="/style.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>PulseHub</h1>
+      <span id="connection" class="connection lost">CONNECTING</span>
+      <span class="uptime">Hub uptime <strong id="uptime">0s</strong></span>
+    </header>
+    <main>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Reception</h2>
+          <span id="health" class="badge level-ok">OK</span>
+        </div>
+        <div id="reception-stats" class="stats"></div>
+        <h3>Invalid by reason</h3>
+        <div id="invalid-reasons" class="stats compact"></div>
+      </section>
+      <section class="panel">
+        <h2>Fleet</h2>
+        <div id="fleet" class="stats counters"></div>
+      </section>
+      <div class="columns">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Active alerts</h2>
+            <span id="alert-count" class="count">0</span>
+          </div>
+          <ul id="alerts" class="list"></ul>
+        </section>
+        <section class="panel">
+          <h2>Top 5 hottest</h2>
+          <ol id="hottest" class="list"></ol>
+        </section>
+      </div>
+      <section class="panel">
+        <h2>Devices</h2>
+        <div id="devices" class="grid"></div>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
