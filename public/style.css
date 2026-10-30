@@ -43,7 +43,7 @@
   --space-3: 16px;
   --space-4: 24px;
   --space-5: 40px;
-  --segment-height: 5px;
+  --segment-height: 4px;
   --pulse: 1.6s ease-in-out infinite alternate;
 }
 
@@ -61,7 +61,7 @@ body {
 }
 
 [hidden] {
-  display: none;
+  display: none !important;
 }
 
 h1,
@@ -126,19 +126,20 @@ main {
 
 main {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
   padding-bottom: var(--space-5);
 }
 
 .headline {
-  max-width: 34ch;
+  max-width: 40ch;
   font-size: var(--size-headline);
   font-weight: 600;
   line-height: 1.1;
 }
 
 .fleet-line {
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
   color: var(--text-muted);
 }
 
@@ -177,7 +178,7 @@ main {
 .strips {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4) var(--space-1);
+  gap: var(--space-3) var(--space-1);
 }
 
 .strip {
@@ -409,6 +410,10 @@ main {
   main {
     padding-left: var(--space-3);
     padding-right: var(--space-3);
+  }
+
+  :root {
+    --segment-height: 3px;
   }
 
   .bridge {
