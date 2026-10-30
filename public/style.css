@@ -173,6 +173,7 @@ main {
 }
 
 .stat-label {
+  overflow-wrap: anywhere;
   font-size: 12px;
   color: var(--muted);
   text-transform: uppercase;
