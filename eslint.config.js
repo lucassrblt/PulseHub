@@ -12,4 +12,11 @@ export default defineConfig(
       "@typescript-eslint/explicit-module-boundary-types": "error",
     },
   },
+  {
+    files: ["public/**/*.js"],
+    languageOptions: {
+      sourceType: "script",
+      globals: { document: "readonly", EventSource: "readonly" },
+    },
+  },
 );
