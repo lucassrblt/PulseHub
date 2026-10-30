@@ -21,6 +21,7 @@ const NOMINAL: DeviceState = {
   late: 0,
   reboots: 0,
   resyncs: 0,
+  outOfRange: 0,
 };
 const OVERHEATED: DeviceState = { ...NOMINAL, temperatureC: 75 };
 

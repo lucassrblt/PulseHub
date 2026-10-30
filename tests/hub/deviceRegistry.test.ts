@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { loadConfig } from "../../src/hub/config.js";
 import { DeviceRegistry } from "../../src/hub/deviceRegistry.js";
+import { buildOutOfRangePredicate } from "../../src/hub/thresholds.js";
 import { FakeClock } from "./fakeClock.js";
 import { NOMINAL, heartbeat, telemetry } from "./frames.js";
 
+const CONFIG = loadConfig({});
 const DEVICE = 7;
 const ACCEPTED = { kind: "accepted", lost: 0, rebooted: false, resynced: false } as const;
 
@@ -12,7 +15,7 @@ describe("DeviceRegistry", () => {
 
   beforeEach(() => {
     clock = new FakeClock(1000);
-    registry = new DeviceRegistry(clock);
+    registry = new DeviceRegistry(clock, buildOutOfRangePredicate(CONFIG));
   });
 
   it("starts empty", () => {
@@ -34,6 +37,7 @@ describe("DeviceRegistry", () => {
       late: 0,
       reboots: 0,
       resyncs: 0,
+      outOfRange: 1,
     });
   });
 
@@ -63,6 +67,20 @@ describe("DeviceRegistry", () => {
     registry.record(heartbeat(DEVICE, 500), ACCEPTED);
     const device = registry.record(heartbeat(DEVICE, 900_000), { ...ACCEPTED, resynced: true });
     expect(device).toMatchObject({ resyncs: 1, lost: 0, lastSeq: 900_000 });
+  });
+
+  it("counts accepted telemetry frames whose own readings break a threshold", () => {
+    registry.record(telemetry(DEVICE, 1, { ...NOMINAL, hundredthsC: 6000 }), ACCEPTED);
+    registry.record(telemetry(DEVICE, 2, { ...NOMINAL, mv: 20000 }), ACCEPTED);
+    registry.record(heartbeat(DEVICE, 3), ACCEPTED);
+    const device = registry.record(telemetry(DEVICE, 4, NOMINAL), ACCEPTED);
+    expect(device.outOfRange).toBe(2);
+  });
+
+  it("does not count a discarded frame as out of range", () => {
+    registry.record(telemetry(DEVICE, 1, NOMINAL), ACCEPTED);
+    const device = registry.record(telemetry(DEVICE, 1, { ...NOMINAL, ma: 12000 }), { kind: "duplicate" });
+    expect(device.outOfRange).toBe(0);
   });
 
   it("does not refresh last seen on a discarded frame", () => {

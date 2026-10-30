@@ -27,6 +27,7 @@ export class FramePipeline {
       this.deps.stats.recordInvalid(decoded.error.reason);
       return;
     }
+    this.deps.stats.recordUnknownMetrics(decoded.value.skippedMeasurements);
     const verdict = this.deps.sequencer.check(decoded.value);
     this.deps.stats.recordVerdict(verdict);
     const device = this.deps.devices.record(decoded.value, verdict);

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { decodeFrame, encodeFrame } from "../../src/protocol/index.js";
+import { FIELD_OFFSET, decodeFrame, encodeFrame, xorChecksum } from "../../src/protocol/index.js";
 import { AlertEngine } from "../../src/hub/alertEngine.js";
 import { buildAlertRules } from "../../src/hub/alertRules.js";
 import { loadConfig } from "../../src/hub/config.js";
@@ -7,12 +7,14 @@ import { DeviceRegistry } from "../../src/hub/deviceRegistry.js";
 import { FramePipeline } from "../../src/hub/pipeline.js";
 import { ReceptionStats } from "../../src/hub/receptionStats.js";
 import { Sequencer } from "../../src/hub/sequencer.js";
+import { buildOutOfRangePredicate } from "../../src/hub/thresholds.js";
 import { FakeClock } from "./fakeClock.js";
 import { NOMINAL, heartbeat, telemetry } from "./frames.js";
 
 const CONFIG = loadConfig({});
 const DEVICE = 4;
 const SECOND = 1000;
+const UNKNOWN_METRIC_ID = 99;
 
 describe("FramePipeline", () => {
   let clock: FakeClock;
@@ -24,7 +26,7 @@ describe("FramePipeline", () => {
   beforeEach(() => {
     clock = new FakeClock();
     stats = new ReceptionStats(clock, CONFIG);
-    registry = new DeviceRegistry(clock);
+    registry = new DeviceRegistry(clock, buildOutOfRangePredicate(CONFIG));
     alerts = new AlertEngine(clock, buildAlertRules(CONFIG), CONFIG);
     pipeline = new FramePipeline({
       decode: decodeFrame,
@@ -46,6 +48,22 @@ describe("FramePipeline", () => {
     [1, 2, 5, 3, 5, 6].forEach((seq) => pipeline.handle(encodeFrame(telemetry(DEVICE, seq, NOMINAL))));
     expect(stats.summary()).toMatchObject({ received: 6, valid: 6, accepted: 4, lost: 2, late: 1, duplicates: 1 });
     expect(registry.list()).toMatchObject([{ deviceId: DEVICE, lastSeq: 6, lost: 2, late: 1, duplicates: 1 }]);
+  });
+
+  it("counts the measurements skipped for an unknown metric id", () => {
+    const bytes = encodeFrame(telemetry(DEVICE, 1, NOMINAL));
+    bytes[FIELD_OFFSET.MEASUREMENTS] = UNKNOWN_METRIC_ID;
+    bytes[bytes.length - 1] = xorChecksum(bytes, bytes.length - 1);
+    pipeline.handle(bytes);
+    expect(stats.summary()).toMatchObject({ accepted: 1, unknownMetrics: 1 });
+  });
+
+  it("counts accepted telemetry frames breaking a threshold per device", () => {
+    pipeline.handle(encodeFrame(telemetry(DEVICE, 1, NOMINAL)));
+    pipeline.handle(encodeFrame(telemetry(DEVICE, 2, { ...NOMINAL, ma: 12000 })));
+    pipeline.handle(encodeFrame(telemetry(DEVICE, 2, { ...NOMINAL, ma: 12000 })));
+    pipeline.handle(encodeFrame(heartbeat(DEVICE, 3)));
+    expect(registry.list()).toMatchObject([{ outOfRange: 1, duplicates: 1 }]);
   });
 
   function sendHotFrames(seqs: readonly number[]): void {

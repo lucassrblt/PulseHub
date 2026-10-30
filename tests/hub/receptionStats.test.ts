@@ -33,6 +33,7 @@ describe("ReceptionStats", () => {
       late: 0,
       lost: 0,
       resyncs: 0,
+      unknownMetrics: 0,
       framesPerSecond: 0,
       lossRatePct: 0,
       invalidRatePct: 0,
@@ -53,6 +54,13 @@ describe("ReceptionStats", () => {
     expect(summary.valid).toBe(1);
     expect(summary.invalid).toBe(3);
     expect(summary.invalidByReason).toEqual({ BAD_CHECKSUM: 2, TOO_SHORT: 1 });
+  });
+
+  it("adds up the unknown metrics", () => {
+    stats.recordUnknownMetrics(2);
+    stats.recordUnknownMetrics(0);
+    stats.recordUnknownMetrics(1);
+    expect(stats.summary().unknownMetrics).toBe(3);
   });
 
   it("counts each verdict kind", () => {

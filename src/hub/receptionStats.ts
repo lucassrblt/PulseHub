@@ -22,6 +22,7 @@ export interface ReceptionSummary {
   readonly late: number;
   readonly lost: number;
   readonly resyncs: number;
+  readonly unknownMetrics: number;
   readonly framesPerSecond: number;
   readonly lossRatePct: number;
   readonly invalidRatePct: number;
@@ -32,6 +33,7 @@ export interface ReceptionSummary {
 export interface ReceptionRecorder {
   recordReceived(): void;
   recordInvalid(reason: DecodeErrorReason): void;
+  recordUnknownMetrics(count: number): void;
   recordVerdict(verdict: SequenceVerdict): void;
 }
 
@@ -50,7 +52,7 @@ interface HealthWindow {
   readonly lost: RateMeter;
 }
 
-/** Counts received, invalid, accepted, duplicate, late and lost frames and resyncs, and derives the rates. */
+/** Counts received, invalid, accepted, duplicate, late and lost frames, resyncs and unknown metrics, and derives the rates. */
 export class ReceptionStats implements ReceptionRecorder, ReceptionSource {
   private readonly rate: RateMeter;
   private readonly recent: HealthWindow;
@@ -62,6 +64,7 @@ export class ReceptionStats implements ReceptionRecorder, ReceptionSource {
   private late = 0;
   private lost = 0;
   private resyncs = 0;
+  private unknownMetrics = 0;
 
   constructor(
     clock: Clock,
@@ -82,6 +85,10 @@ export class ReceptionStats implements ReceptionRecorder, ReceptionSource {
     this.invalid++;
     this.recent.invalid.record();
     this.invalidByReason[reason] = (this.invalidByReason[reason] ?? 0) + 1;
+  }
+
+  recordUnknownMetrics(count: number): void {
+    this.unknownMetrics += count;
   }
 
   recordVerdict(verdict: SequenceVerdict): void {
@@ -114,6 +121,7 @@ export class ReceptionStats implements ReceptionRecorder, ReceptionSource {
       late: this.late,
       lost: this.lost,
       resyncs: this.resyncs,
+      unknownMetrics: this.unknownMetrics,
       framesPerSecond: this.rate.perSecond(),
       lossRatePct,
       invalidRatePct,

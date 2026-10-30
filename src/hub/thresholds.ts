@@ -15,6 +15,12 @@ export interface ThresholdPredicates {
   readonly overcurrent: ReadingPredicate;
 }
 
+/** Predicate holding when the readings break any WARN or CRIT threshold. */
+export function buildOutOfRangePredicate(thresholds: Thresholds): ReadingPredicate {
+  const predicates = Object.values(buildThresholdPredicates(thresholds));
+  return (readings) => predicates.some((breaks) => breaks(readings));
+}
+
 /** Temperature at or above warn or crit, voltage outside [min, max], current above max. */
 export function buildThresholdPredicates(thresholds: Thresholds): ThresholdPredicates {
   return {

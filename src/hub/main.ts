@@ -17,6 +17,7 @@ import { Sequencer } from "./sequencer.js";
 import { formatStatusLine } from "./statusLine.js";
 import { startAll } from "./startup.js";
 import { buildStatusRules } from "./statusRules.js";
+import { buildOutOfRangePredicate } from "./thresholds.js";
 import { intervalTimer } from "./timer.js";
 import { UdpReceiver } from "./udpReceiver.js";
 
@@ -27,7 +28,7 @@ async function main(): Promise<void> {
   const config = loadConfig(process.env);
   const clock = systemClock;
   const stats = new ReceptionStats(clock, config);
-  const registry = new DeviceRegistry(clock);
+  const registry = new DeviceRegistry(clock, buildOutOfRangePredicate(config));
   const alerts = new AlertEngine(clock, buildAlertRules(config), config);
   const pipeline = new FramePipeline({
     decode: decodeFrame,
