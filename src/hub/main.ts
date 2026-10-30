@@ -15,6 +15,7 @@ import { FramePipeline } from "./pipeline.js";
 import { ReceptionStats } from "./receptionStats.js";
 import { Sequencer } from "./sequencer.js";
 import { formatStatusLine } from "./statusLine.js";
+import { startAll } from "./startup.js";
 import { buildStatusRules } from "./statusRules.js";
 import { intervalTimer } from "./timer.js";
 import { UdpReceiver } from "./udpReceiver.js";
@@ -53,9 +54,8 @@ async function main(): Promise<void> {
     consoleLogger,
   );
 
-  const port = await receiver.start();
+  const [port, httpPort] = await startAll([receiver, web]);
   consoleLogger.info(`PulseHub hub listening on udp/${port}`);
-  const httpPort = await web.start();
   consoleLogger.info(`PulseHub dashboard on http://localhost:${httpPort}`);
   const statusTimer = setInterval(
     () => consoleLogger.info(formatStatusLine(summary.snapshot())),
