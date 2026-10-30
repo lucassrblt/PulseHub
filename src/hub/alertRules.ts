@@ -1,5 +1,5 @@
-import type { StatusThresholds } from "./statusRules.js";
 import type { DeviceReadings } from "./readings.js";
+import { buildThresholdPredicates, type Thresholds } from "./thresholds.js";
 
 /** Condition that raises an alert once it has held long enough. */
 export interface AlertRule {
@@ -8,24 +8,24 @@ export interface AlertRule {
   isTriggered(readings: DeviceReadings): boolean;
 }
 
-/** Alert rules built from the configured thresholds. */
-export function buildAlertRules(thresholds: StatusThresholds): readonly AlertRule[] {
+/** Alert rules built from the same threshold predicates as the status rules. */
+export function buildAlertRules(thresholds: Thresholds): readonly AlertRule[] {
+  const breaks = buildThresholdPredicates(thresholds);
   return [
     {
       id: "temperature-critical",
-      label: `Temperature above ${thresholds.tempCritC} °C`,
-      isTriggered: ({ temperatureC }) => temperatureC !== null && temperatureC > thresholds.tempCritC,
+      label: `Temperature at or above ${thresholds.tempCritC} °C`,
+      isTriggered: breaks.temperatureCrit,
     },
     {
       id: "voltage-out-of-range",
       label: `Voltage outside ${thresholds.voltageMinMv}-${thresholds.voltageMaxMv} mV`,
-      isTriggered: ({ voltageMv }) =>
-        voltageMv !== null && (voltageMv < thresholds.voltageMinMv || voltageMv > thresholds.voltageMaxMv),
+      isTriggered: breaks.voltageOutOfRange,
     },
     {
       id: "overcurrent",
       label: `Current above ${thresholds.currentMaxMa} mA`,
-      isTriggered: ({ currentMa }) => currentMa !== null && currentMa > thresholds.currentMaxMa,
+      isTriggered: breaks.overcurrent,
     },
   ];
 }

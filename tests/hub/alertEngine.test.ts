@@ -60,7 +60,7 @@ describe("AlertEngine", () => {
       {
         deviceId: 3,
         ruleId: "temperature-critical",
-        label: "Temperature above 70 °C",
+        label: "Temperature at or above 70 °C",
         sinceMs: 0,
         durationMs: CONFIG.alertDurationMs,
       },
