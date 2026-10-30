@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,6 +11,8 @@ const ANY_FREE_PORT = 0;
 const INTERVAL_MS = 250;
 const INDEX_HTML = "<!doctype html><title>PulseHub</title>";
 const SSE_PREFIX = "data: ";
+const FONT_PATH = "/fonts/barlow-latin-400-normal.woff2";
+const FONT_BYTES = Buffer.from([0x77, 0x4f, 0x46, 0x32]);
 
 describe("HttpServer", () => {
   let publicDir: string;
@@ -21,6 +23,8 @@ describe("HttpServer", () => {
     publicDir = await mkdtemp(join(tmpdir(), "pulsehub-public-"));
     await writeFile(join(publicDir, "index.html"), INDEX_HTML);
     await writeFile(join(publicDir, "secret.txt"), "secret");
+    await mkdir(join(publicDir, "fonts"));
+    await writeFile(join(publicDir, FONT_PATH), FONT_BYTES);
     const events = new SnapshotBroadcaster(new FakeProvider(), new FakeTimer(), INTERVAL_MS);
     server = new HttpServer(
       ANY_FREE_PORT,
@@ -42,7 +46,14 @@ describe("HttpServer", () => {
     expect(await response.text()).toBe(INDEX_HTML);
   });
 
-  it.each(["/unknown", "/secret.txt", "/..%2Fsecret.txt", "/app.js"])("returns 404 for %s", async (path) => {
+  it("serves a whitelisted font as woff2", async () => {
+    const response = await fetch(`${baseUrl}${FONT_PATH}`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("font/woff2");
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(FONT_BYTES);
+  });
+
+  it.each(["/unknown", "/secret.txt", "/..%2Fsecret.txt", "/app.js", "/fonts/OFL.txt", "/fonts/other.woff2"])("returns 404 for %s", async (path) => {
     const response = await fetch(`${baseUrl}${path}`);
     expect(response.status).toBe(404);
   });

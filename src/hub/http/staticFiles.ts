@@ -9,12 +9,28 @@ interface StaticFile {
 }
 
 const INDEX: StaticFile = { fileName: "index.html", contentType: "text/html; charset=utf-8" };
+const FONTS_DIR = "fonts";
+const FONT_FILE_NAMES = [
+  "barlow-latin-400-normal.woff2",
+  "barlow-latin-600-normal.woff2",
+  "barlow-semi-condensed-latin-600-normal.woff2",
+];
+
+function fontRoutes(): Record<string, StaticFile> {
+  return Object.fromEntries(
+    FONT_FILE_NAMES.map((name) => [
+      `/${FONTS_DIR}/${name}`,
+      { fileName: join(FONTS_DIR, name), contentType: "font/woff2" },
+    ]),
+  );
+}
 
 const PUBLIC_FILES: Readonly<Record<string, StaticFile>> = {
   "/": INDEX,
   "/index.html": INDEX,
   "/app.js": { fileName: "app.js", contentType: "text/javascript; charset=utf-8" },
   "/style.css": { fileName: "style.css", contentType: "text/css; charset=utf-8" },
+  ...fontRoutes(),
 };
 
 /** Serves a request path to a response. */
