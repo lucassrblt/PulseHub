@@ -115,10 +115,6 @@ function joinFrench(parts) {
   return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} et ${parts.at(-1)}` : parts.join("");
 }
 
-function capitalize(text) {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
 function fleetProblems(fleet) {
   const problems = [
     [number(fleet.crit), "en surchauffe", "en surchauffe"],
@@ -148,7 +144,7 @@ function headlineText(snapshot) {
     return "En attente de trames sur le port UDP…";
   }
   const problems = fleetProblems(fleet);
-  const devices = problems.length > 0 ? `${capitalize(joinFrench(problems))}.` : "";
+  const devices = problems.length > 0 ? `${joinFrench(problems)}.` : "";
   const signal = receptionSentence(reception);
   const online = `${plural(number(fleet.online) ?? 0, "appareil", "appareils")} en ligne.`;
   return [devices || (signal ? "" : "Réception saine."), signal, devices ? "" : online].filter(Boolean).join(" ");
@@ -157,11 +153,11 @@ function headlineText(snapshot) {
 function fleetLine(snapshot) {
   const fleet = snapshot.fleet ?? {};
   const hottest = list(snapshot.hottest)[0];
-  const parts = [`${count(fleet.online)} en ligne sur ${count(fleet.total)}`, `${count(fleet.offline)} hors ligne`];
+  const parts = [`En ligne : ${count(fleet.online)} sur ${count(fleet.total)}`, `${count(fleet.offline)} hors ligne`];
   if (hottest) {
     parts.push(`le plus chaud : n°${hottest.deviceId} à ${celsius(hottest.temperatureC)}`);
   }
-  return `${capitalize(parts.join(", "))}.`;
+  return `${parts.join(", ")}.`;
 }
 
 function renderSummary(snapshot) {
@@ -211,9 +207,7 @@ function bandOf(lowerC) {
 function createMeter() {
   const meter = element("span", "meter");
   for (let lowerC = 0; lowerC < METER_MAX_C; lowerC += METER_STEP_C) {
-    const segment = element("span", `segment band-${bandOf(lowerC)}`);
-    segment.classList.toggle("tick", lowerC === TEMP_WARN_C || lowerC === TEMP_CRIT_C);
-    meter.append(segment);
+    meter.append(element("span", `segment band-${bandOf(lowerC)}`));
   }
   return meter;
 }

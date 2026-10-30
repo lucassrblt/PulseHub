@@ -218,19 +218,8 @@ main {
 }
 
 .segment {
-  position: relative;
   height: var(--segment-height);
   background: var(--led-dark);
-}
-
-.segment.tick::after {
-  content: "";
-  position: absolute;
-  bottom: -2px;
-  left: -6px;
-  width: 4px;
-  height: 1px;
-  background: var(--text-muted);
 }
 
 .segment.lit.band-ok {
