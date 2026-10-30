@@ -1,0 +1,23 @@
+{
+  "name": "pulsehub",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PulseHub: UDP telemetry hub for IoT devices",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "hub": "tsx src/hub/main.ts",
+    "sim": "tsx src/simulator/main.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}
