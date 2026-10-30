@@ -74,6 +74,11 @@ describe("parseCli", () => {
     expect(errorOf(argv)).toContain(mention);
   });
 
+  it("rejects a total rate above the maximum and accepts it at the maximum", () => {
+    expect(errorOf(["--devices", "1000", "--hz", "1000"])).toContain("50000 frames/s");
+    expect(configOf(["--devices", "1000", "--hz", "50"])).toMatchObject({ devices: 1000, hz: 50 });
+  });
+
   it("names the env variable when its value is invalid", () => {
     expect(errorOf([], { SIM_PORT: "99999" })).toContain("SIM_PORT");
   });

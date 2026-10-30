@@ -70,6 +70,17 @@ describe("Simulator", () => {
     expect(sender.sent).toHaveLength(2 * DEVICES * HZ);
   });
 
+  it("skips the backlog of a stalled timer instead of catching up", () => {
+    const { clock, timer, sender, simulator } = setup();
+    simulator.start();
+    clock.nowMs = 10_000;
+    timer.fire();
+    expect(sender.sent).toHaveLength(DEVICES);
+    clock.nowMs = 10_000 + PERIOD_MS;
+    timer.fire();
+    expect(sender.sent).toHaveLength(2 * DEVICES);
+  });
+
   it("emits nothing after stop", () => {
     const { clock, timer, sender, simulator } = setup();
     simulator.start();

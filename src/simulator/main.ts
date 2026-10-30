@@ -17,6 +17,7 @@ import { UdpSender } from "./udp-sender.js";
 import { NOMINAL_WALKS } from "./walk.js";
 
 const EXIT_INVALID_ARGS = 2;
+const SHUTDOWN_SIGNALS = ["SIGINT", "SIGTERM"] as const;
 
 function stoppedIds(config: SimulatorConfig, random: Random): number[] {
   return config.stopIds.length > 0
@@ -86,11 +87,17 @@ function run(config: SimulatorConfig): void {
   simulator.start();
   const stopStats = intervalTimer.every(config.statsIntervalMs, () => console.log(stats.rateLine()));
 
-  process.once("SIGINT", () => {
+  let stopping = false;
+  const shutdown = (): void => {
+    if (stopping) {
+      return;
+    }
+    stopping = true;
     simulator.stop();
     stopStats();
     void sender.close().then(() => console.log(stats.totalsLine()));
-  });
+  };
+  SHUTDOWN_SIGNALS.forEach((signal) => process.once(signal, shutdown));
 }
 
 const parsed = parseCli(process.argv.slice(2), process.env);

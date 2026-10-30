@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { err, ok, type Result } from "../protocol/index.js";
-import { MAX_DEVICE_ID, MAX_PORT, UINT32_RANGE } from "./limits.js";
+import { MAX_DEVICE_ID, MAX_PORT, MAX_TOTAL_FPS, UINT32_RANGE } from "./limits.js";
 
 /** Validated simulator settings. */
 export interface SimulatorConfig {
@@ -289,6 +289,12 @@ function readField<T>(field: Field<T>, values: Record<string, unknown>, env: Env
 }
 
 function checkTargets(config: SimulatorConfig): void {
+  const totalFps = config.devices * config.hz;
+  if (totalFps > MAX_TOTAL_FPS) {
+    throw new ConfigError(
+      `Invalid --devices x --hz: ${totalFps} frames/s exceeds the maximum of ${MAX_TOTAL_FPS} frames/s`,
+    );
+  }
   if (config.faultStop > config.devices) {
     throw new ConfigError(`Invalid --fault-stop ${config.faultStop}: only ${config.devices} devices`);
   }

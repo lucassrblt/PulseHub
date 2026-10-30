@@ -9,3 +9,6 @@ export const MAX_PORT = 0xffff;
 
 /** Milliseconds in one second. */
 export const MS_PER_SECOND = 1000;
+
+/** Highest total send rate (devices x hz) the simulator accepts, in frames per second. */
+export const MAX_TOTAL_FPS = 50_000;
