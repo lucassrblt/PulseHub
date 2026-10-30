@@ -7,10 +7,10 @@ export interface DeviceReadings {
   readonly currentMa: number | null;
 }
 
-const TENTHS_PER_DEGREE = 10;
+const HUNDREDTHS_PER_DEGREE = 100;
 
 const READING_OF_METRIC: Readonly<Record<MetricId, (value: number) => Partial<DeviceReadings>>> = {
-  [METRIC_ID.TEMPERATURE]: (value) => ({ temperatureC: value / TENTHS_PER_DEGREE }),
+  [METRIC_ID.TEMPERATURE]: (value) => ({ temperatureC: value / HUNDREDTHS_PER_DEGREE }),
   [METRIC_ID.VOLTAGE]: (value) => ({ voltageMv: value }),
   [METRIC_ID.CURRENT]: (value) => ({ currentMa: value }),
 };

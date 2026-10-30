@@ -48,7 +48,7 @@ describe("FramePipeline", () => {
   });
 
   it("feeds accepted device states to the alert engine", () => {
-    pipeline.handle(encodeFrame(telemetry(DEVICE, 1, { ...NOMINAL, tenthsC: 800 })));
+    pipeline.handle(encodeFrame(telemetry(DEVICE, 1, { ...NOMINAL, hundredthsC: 8000 })));
     clock.advance(CONFIG.alertDurationMs);
     expect(alerts.active()).toMatchObject([{ deviceId: DEVICE, ruleId: "temperature-critical" }]);
   });

@@ -32,8 +32,8 @@ describe("FleetSummary", () => {
     });
   });
 
-  function addDevice(deviceId: number, tenthsC: number): void {
-    registry.record(telemetry(deviceId, 1, { ...NOMINAL, tenthsC }), ACCEPTED);
+  function addDevice(deviceId: number, hundredthsC: number): void {
+    registry.record(telemetry(deviceId, 1, { ...NOMINAL, hundredthsC }), ACCEPTED);
   }
 
   it("shows zero or empty values everywhere on a fresh hub", () => {
@@ -62,15 +62,15 @@ describe("FleetSummary", () => {
   });
 
   it("is plain serializable data", () => {
-    addDevice(1, 300);
+    addDevice(1, 3000);
     const snapshot = summary.snapshot();
     expect(JSON.parse(JSON.stringify(snapshot))).toEqual(snapshot);
   });
 
   it("lists devices sorted by id with their status", () => {
-    addDevice(9, 650);
-    addDevice(2, 250);
-    addDevice(5, 720);
+    addDevice(9, 6500);
+    addDevice(2, 2500);
+    addDevice(5, 7200);
     expect(summary.snapshot().devices.map((device) => [device.deviceId, device.status])).toEqual([
       [2, "OK"],
       [5, "CRIT"],
@@ -79,15 +79,15 @@ describe("FleetSummary", () => {
   });
 
   it("counts devices per status, including offline ones", () => {
-    addDevice(1, 250);
+    addDevice(1, 2500);
     clock.advance(CONFIG.offlineAfterMs + 1);
-    addDevice(2, 650);
-    addDevice(3, 720);
+    addDevice(2, 6500);
+    addDevice(3, 7200);
     expect(summary.snapshot().fleet).toEqual({ total: 3, online: 2, ok: 0, warn: 1, crit: 1, offline: 1 });
   });
 
   it("ranks the five hottest online devices", () => {
-    [200, 450, 300, 700, 100, 650, 500].forEach((tenthsC, index) => addDevice(index + 1, tenthsC));
+    [2000, 4500, 3000, 7000, 1000, 6500, 5000].forEach((hundredthsC, index) => addDevice(index + 1, hundredthsC));
     expect(summary.snapshot().hottest.map((device) => device.temperatureC)).toEqual([70, 65, 50, 45, 30]);
   });
 

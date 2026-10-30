@@ -20,7 +20,7 @@ describe("DeviceRegistry", () => {
   });
 
   it("stores the readings of an accepted telemetry frame in device units", () => {
-    const device = registry.record(telemetry(DEVICE, 1, { tenthsC: 653, mv: 24100, ma: 1200 }, 5000), ACCEPTED);
+    const device = registry.record(telemetry(DEVICE, 1, { hundredthsC: 6530, mv: 24100, ma: 1200 }, 5000), ACCEPTED);
     expect(device).toEqual({
       deviceId: DEVICE,
       temperatureC: 65.3,
