@@ -3,6 +3,7 @@ import type { Clock } from "../shared/time.js";
 import type { DeviceSource, DeviceState } from "./deviceRegistry.js";
 import type { DeviceStatus, DeviceStatusPolicy } from "./deviceStatus.js";
 import type { ReceptionSource, ReceptionSummary } from "./receptionStats.js";
+import type { ThresholdLimits } from "./thresholds.js";
 
 const HOTTEST_COUNT = 5;
 
@@ -28,6 +29,7 @@ export interface FleetSnapshot {
   readonly generatedAt: number;
   readonly hubUptimeMs: number;
   readonly reception: ReceptionSummary;
+  readonly thresholds: ThresholdLimits;
   readonly fleet: FleetCounts;
   readonly hottest: readonly DeviceView[];
   readonly devices: readonly DeviceView[];
@@ -47,6 +49,7 @@ export interface FleetSummaryDeps {
   readonly devices: DeviceSource;
   readonly statuses: DeviceStatusPolicy;
   readonly alerts: AlertSource;
+  readonly thresholds: ThresholdLimits;
 }
 
 /** Assembles reception, device and alert data into one snapshot. */
@@ -63,6 +66,7 @@ export class FleetSummary implements SnapshotProvider {
       generatedAt: now,
       hubUptimeMs: now - this.deps.startedAtMs,
       reception: this.deps.reception.summary(),
+      thresholds: { ...this.deps.thresholds },
       fleet: countByStatus(devices),
       hottest: hottestOf(devices),
       devices,

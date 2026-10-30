@@ -37,6 +37,7 @@ describe("ReceptionStats", () => {
       framesPerSecond: 0,
       lossRatePct: 0,
       invalidRatePct: 0,
+      healthWindowMs: SETTINGS.healthWindowMs,
       health: "OK",
     });
   });

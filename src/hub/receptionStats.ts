@@ -9,7 +9,7 @@ const PERCENT = 100;
 
 /**
  * Reception counters since start and rates exposed to the snapshot.
- * lossRatePct, invalidRatePct and health cover the last health window only, so they recover after a burst;
+ * lossRatePct, invalidRatePct and health cover the last healthWindowMs only, so they recover after a burst;
  * with no traffic in that window both rates are 0 and health is OK.
  */
 export interface ReceptionSummary {
@@ -26,6 +26,7 @@ export interface ReceptionSummary {
   readonly framesPerSecond: number;
   readonly lossRatePct: number;
   readonly invalidRatePct: number;
+  readonly healthWindowMs: number;
   readonly health: HealthLevel;
 }
 
@@ -125,6 +126,7 @@ export class ReceptionStats implements ReceptionRecorder, ReceptionSource {
       framesPerSecond: this.rate.perSecond(),
       lossRatePct,
       invalidRatePct,
+      healthWindowMs: this.settings.healthWindowMs,
       health: worstLevel([this.levelOf(lossRatePct), this.levelOf(invalidRatePct)]),
     };
   }

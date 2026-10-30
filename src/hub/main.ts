@@ -17,7 +17,7 @@ import { Sequencer } from "./sequencer.js";
 import { formatStatusLine } from "./statusLine.js";
 import { startAll } from "./startup.js";
 import { buildStatusRules } from "./statusRules.js";
-import { buildOutOfRangePredicate } from "./thresholds.js";
+import { buildOutOfRangePredicate, thresholdLimits } from "./thresholds.js";
 import { UdpReceiver } from "./udpReceiver.js";
 
 const STATUS_LINE_INTERVAL_MS = 2000;
@@ -43,6 +43,7 @@ async function main(): Promise<void> {
     devices: registry,
     statuses: new DeviceStatusEvaluator(clock, config.offlineAfterMs, buildStatusRules(config)),
     alerts,
+    thresholds: thresholdLimits(config),
   });
   const receiver = new UdpReceiver({ host: config.hubHost, port: config.hubPort }, (bytes) => pipeline.handle(bytes), consoleLogger);
   const broadcaster = new SnapshotBroadcaster(summary, intervalTimer, config.snapshotIntervalMs);

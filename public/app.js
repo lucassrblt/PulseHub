@@ -1,7 +1,12 @@
 const METER_MAX_C = 90;
 const METER_STEP_C = 5;
-const TEMP_WARN_C = 60;
-const TEMP_CRIT_C = 70;
+const DEFAULT_THRESHOLDS = {
+  temperatureWarnC: 60,
+  temperatureCritC: 70,
+  voltageMinMv: 22000,
+  voltageMaxMv: 26000,
+  currentMaxMa: 10000,
+};
 const MAX_TILT_STEPS = 2;
 const TILT_DEG_PER_STEP = 0.5;
 const TILT_SPREAD = 37;
@@ -13,9 +18,10 @@ const NO_VALUE = "–";
 const STATUSES = ["OK", "WARN", "CRIT", "OFFLINE"];
 const STATUS_WORDS = { OK: "normal", WARN: "à surveiller", CRIT: "critique", OFFLINE: "hors ligne" };
 const ALERT_LABELS = {
-  "temperature-critical": "Surchauffe",
-  "voltage-out-of-range": "Tension hors plage",
-  overcurrent: "Surintensité",
+  "temperature-critical": (limits) => `Surchauffe, ${celsius(limits.temperatureCritC, 0)} ou plus`,
+  "voltage-out-of-range": (limits) =>
+    `Tension hors plage, ${milli(limits.voltageMinMv, "V", 0)} à ${milli(limits.voltageMaxMv, "V", 0)}`,
+  overcurrent: (limits) => `Surintensité, plus de ${milli(limits.currentMaxMa, "A", 0)}`,
 };
 const REASON_LABELS = {
   TOO_SHORT: "Trame trop courte",
@@ -28,6 +34,10 @@ const REASON_LABELS = {
   INVALID_DEVICE_ID: "Identifiant d’appareil invalide",
   HEARTBEAT_WITH_MEASUREMENTS: "Battement avec mesures",
 };
+const STREAM_ANOMALIES = [
+  ["resyncs", "Resynchronisations"],
+  ["unknownMetrics", "Mesures inconnues ignorées"],
+];
 const FIGURES = [
   ["framesPerSecond", "Trames par seconde", 1],
   ["received", "Reçues", 0],
@@ -47,6 +57,8 @@ const DETAIL_FIELDS = [
   ["Doublons", (device) => count(device.duplicates)],
   ["En retard", (device) => count(device.late)],
   ["Redémarrages", (device) => count(device.reboots)],
+  ["Resynchronisations", (device) => count(device.resyncs)],
+  ["Mesures hors plage", (device) => count(device.outOfRange)],
 ];
 
 const state = { selectedId: null, pinned: false, headline: "", detailValues: [], snapshot: {} };
@@ -86,12 +98,19 @@ function count(value) {
   return number(value) === null ? NO_VALUE : decimal(value, 0);
 }
 
-function celsius(value) {
-  return number(value) === null ? NO_VALUE : `${decimal(value, 1)} °C`;
+function celsius(value, digits = 1) {
+  return number(value) === null ? NO_VALUE : `${decimal(value, digits)} °C`;
 }
 
-function milli(value, unit) {
-  return number(value) === null ? NO_VALUE : `${decimal(value / MILLI_PER_UNIT, 2)} ${unit}`;
+function milli(value, unit, digits = 2) {
+  return number(value) === null ? NO_VALUE : `${decimal(value / MILLI_PER_UNIT, digits)} ${unit}`;
+}
+
+function thresholdsOf(snapshot) {
+  const given = snapshot.thresholds ?? {};
+  return Object.fromEntries(
+    Object.entries(DEFAULT_THRESHOLDS).map(([key, fallback]) => [key, number(given[key]) ?? fallback]),
+  );
 }
 
 function duration(ms) {
@@ -108,7 +127,7 @@ function duration(ms) {
 }
 
 function plural(amount, singular, several) {
-  return `${amount} ${amount > 1 ? several : singular}`;
+  return `${decimal(amount, 0)} ${amount > 1 ? several : singular}`;
 }
 
 function joinFrench(parts) {
@@ -127,6 +146,17 @@ function fleetProblems(fleet) {
   });
 }
 
+function windowPhrase(windowMs) {
+  if (number(windowMs) === null || windowMs <= 0) {
+    return "";
+  }
+  if (windowMs % MS_PER_SECOND !== 0) {
+    return ` sur les ${decimal(windowMs, 0)} dernières millisecondes`;
+  }
+  const seconds = windowMs / MS_PER_SECOND;
+  return seconds === 1 ? " sur la dernière seconde" : ` sur les ${decimal(seconds, 0)} dernières secondes`;
+}
+
 function receptionSentence(reception) {
   if (reception.health !== "WARN" && reception.health !== "CRIT") {
     return "";
@@ -134,7 +164,7 @@ function receptionSentence(reception) {
   const loss = number(reception.lossRatePct) ?? 0;
   const invalid = number(reception.invalidRatePct) ?? 0;
   const cause = loss >= invalid ? "perdues" : "invalides";
-  return `Réception dégradée : ${decimal(Math.max(loss, invalid), 1)} % de trames ${cause}.`;
+  return `Réception dégradée${windowPhrase(reception.healthWindowMs)} : ${decimal(Math.max(loss, invalid), 1)} % de trames ${cause}.`;
 }
 
 function headlineText(snapshot) {
@@ -157,7 +187,10 @@ function fleetLine(snapshot) {
   if (hottest) {
     parts.push(`le plus chaud : n°${hottest.deviceId} à ${celsius(hottest.temperatureC)}`);
   }
-  return `${parts.join(", ")}.`;
+  const outOfRange = plural(number(fleet.outOfRangeFrames) ?? 0, "mesure hors plage", "mesures hors plage");
+  const reboots = plural(number(fleet.reboots) ?? 0, "redémarrage", "redémarrages");
+  const anomalies = `Depuis le démarrage : ${outOfRange}, ${reboots}.`;
+  return `${parts.join(", ")}. ${anomalies}`;
 }
 
 function renderSummary(snapshot) {
@@ -197,19 +230,31 @@ function syncKeyed(container, items, keyOf, create, update) {
   }
 }
 
-function bandOf(lowerC) {
-  if (lowerC >= TEMP_CRIT_C) {
+function bandOf(lowerC, limits) {
+  if (lowerC >= limits.temperatureCritC) {
     return "crit";
   }
-  return lowerC >= TEMP_WARN_C ? "warn" : "ok";
+  return lowerC >= limits.temperatureWarnC ? "warn" : "ok";
 }
 
 function createMeter() {
   const meter = element("span", "meter");
   for (let lowerC = 0; lowerC < METER_MAX_C; lowerC += METER_STEP_C) {
-    meter.append(element("span", `segment band-${bandOf(lowerC)}`));
+    meter.append(element("span", "segment"));
   }
   return meter;
+}
+
+function paintBands(meter, limits) {
+  const key = `${limits.temperatureWarnC}:${limits.temperatureCritC}`;
+  if (meter.dataset.bands === key) {
+    return;
+  }
+  meter.dataset.bands = key;
+  [...meter.children].forEach((segment, index) => {
+    const band = bandOf(index * METER_STEP_C, limits);
+    ["ok", "warn", "crit"].forEach((name) => segment.classList.toggle(`band-${name}`, name === band));
+  });
 }
 
 function tiltOf(deviceId) {
@@ -241,7 +286,9 @@ function updateStrip(strip, device) {
   strip.setAttribute("aria-pressed", String(device.deviceId === state.selectedId));
   strip.setAttribute("aria-label", `Appareil ${device.deviceId}, ${celsius(device.temperatureC)}, ${STATUS_WORDS[status]}`);
   strip.firstChild.textContent = temperature === null ? NO_VALUE : decimal(temperature, 1);
-  [...strip.querySelector(".meter").children].forEach((segment, index) => segment.classList.toggle("lit", index < lit));
+  const meter = strip.querySelector(".meter");
+  paintBands(meter, thresholdsOf(state.snapshot));
+  [...meter.children].forEach((segment, index) => segment.classList.toggle("lit", index < lit));
 }
 
 function createCue() {
@@ -253,7 +300,8 @@ function createCue() {
 function updateCue(cue, alert) {
   const [device, label, time] = cue.children;
   device.textContent = `n°${alert.deviceId}`;
-  label.textContent = ALERT_LABELS[alert.ruleId] ?? alert.label ?? alert.ruleId;
+  const labelOf = ALERT_LABELS[alert.ruleId];
+  label.textContent = labelOf ? labelOf(thresholdsOf(state.snapshot)) : (alert.label ?? alert.ruleId);
   time.textContent = `depuis ${duration(alert.durationMs)}`;
 }
 
@@ -302,6 +350,17 @@ function renderReasons(invalidByReason) {
   );
 }
 
+function renderStreamAnomalies(reception) {
+  byId("anomalies").replaceChildren(
+    ...STREAM_ANOMALIES.map(([key, label]) => {
+      const amount = number(reception[key]) ?? 0;
+      const row = element("tr", amount > 0 ? "" : "zero");
+      row.append(element("th", "", label), element("td", "", decimal(amount, 0)));
+      return row;
+    }),
+  );
+}
+
 function render(snapshot) {
   state.snapshot = snapshot;
   const devices = list(snapshot.devices).filter((device) => device && device.deviceId !== undefined);
@@ -313,6 +372,7 @@ function render(snapshot) {
   renderAlerts(list(snapshot.alerts));
   renderDetail(device, number(snapshot.generatedAt) ?? Date.now());
   renderReasons((snapshot.reception ?? {}).invalidByReason);
+  renderStreamAnomalies(snapshot.reception ?? {});
 }
 
 function setConnection(live) {

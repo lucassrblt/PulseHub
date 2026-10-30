@@ -4,6 +4,15 @@ import type { DeviceReadings } from "./readings.js";
 /** Configured reading thresholds. */
 export type Thresholds = Pick<HubConfig, "tempWarnC" | "tempCritC" | "voltageMinMv" | "voltageMaxMv" | "currentMaxMa">;
 
+/** Configured thresholds as named in the snapshot, so the visualization follows the config. */
+export interface ThresholdLimits {
+  readonly temperatureWarnC: number;
+  readonly temperatureCritC: number;
+  readonly voltageMinMv: number;
+  readonly voltageMaxMv: number;
+  readonly currentMaxMa: number;
+}
+
 /** Whether the readings break a threshold; a missing reading never does. */
 export type ReadingPredicate = (readings: DeviceReadings) => boolean;
 
@@ -29,5 +38,16 @@ export function buildThresholdPredicates(thresholds: Thresholds): ThresholdPredi
     voltageOutOfRange: ({ voltageMv }) =>
       voltageMv !== null && (voltageMv < thresholds.voltageMinMv || voltageMv > thresholds.voltageMaxMv),
     overcurrent: ({ currentMa }) => currentMa !== null && currentMa > thresholds.currentMaxMa,
+  };
+}
+
+/** Thresholds renamed for the snapshot. */
+export function thresholdLimits(thresholds: Thresholds): ThresholdLimits {
+  return {
+    temperatureWarnC: thresholds.tempWarnC,
+    temperatureCritC: thresholds.tempCritC,
+    voltageMinMv: thresholds.voltageMinMv,
+    voltageMaxMv: thresholds.voltageMaxMv,
+    currentMaxMa: thresholds.currentMaxMa,
   };
 }
