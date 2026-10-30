@@ -8,8 +8,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "hub": "tsx src/hub/main.ts",
-    "sim": "tsx src/simulator/main.ts",
+    "hub": "tsx --env-file-if-exists=.env src/hub/main.ts",
+    "sim": "tsx --env-file-if-exists=.env src/simulator/main.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
