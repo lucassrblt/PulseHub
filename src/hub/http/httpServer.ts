@@ -24,7 +24,7 @@ export class HttpServer {
     private readonly logger: Logger,
   ) {}
 
-  /** Listens on the address, starts the snapshot stream and resolves with the bound port. */
+  /** Listens on the address and resolves with the bound port. */
   start(): Promise<number> {
     const server = createServer((request, response) => this.route(request, response));
     this.server = server;
@@ -33,20 +33,18 @@ export class HttpServer {
       server.listen(this.address.port, this.address.host, () => {
         server.off("error", reject);
         server.on("error", (error) => this.logger.error(`http server error: ${error.message}`));
-        this.routes.events.start();
         resolve((server.address() as AddressInfo).port);
       });
     });
   }
 
-  /** Ends the stream clients, stops the stream and closes the server; does nothing when not started. */
+  /** Closes every connection, including the stream clients, then the server; does nothing when not started. */
   stop(): Promise<void> {
     const server = this.server;
     this.server = undefined;
     if (!server) {
       return Promise.resolve();
     }
-    this.routes.events.stop();
     return new Promise((resolve) => {
       server.close(() => resolve());
       server.closeAllConnections();

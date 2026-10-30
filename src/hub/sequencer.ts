@@ -3,8 +3,7 @@ import type { HubConfig } from "./config.js";
 
 const HALF_SEQ_RANGE = 2 ** 31;
 
-/** Steps from one uint32 seq to the next one, modulo 2^32 (RFC 1982 serial number arithmetic). */
-export function forwardDistance(from: number, to: number): number {
+function forwardDistance(from: number, to: number): number {
   return (to - from + UINT32_RANGE) % UINT32_RANGE;
 }
 

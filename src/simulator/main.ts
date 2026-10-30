@@ -13,7 +13,7 @@ import type { Random } from "./ports.js";
 import { Simulator } from "./simulator.js";
 import { StatsReporter } from "./stats.js";
 import { mathRandom } from "./system.js";
-import { UdpSender } from "./udp-sender.js";
+import { UdpSender } from "./udpSender.js";
 import { NOMINAL_WALKS } from "./walk.js";
 
 const EXIT_INVALID_ARGS = 2;

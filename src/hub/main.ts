@@ -45,25 +45,24 @@ async function main(): Promise<void> {
     alerts,
   });
   const receiver = new UdpReceiver({ host: config.hubHost, port: config.hubPort }, (bytes) => pipeline.handle(bytes), consoleLogger);
+  const broadcaster = new SnapshotBroadcaster(summary, intervalTimer, config.snapshotIntervalMs);
   const web = new HttpServer(
     { host: config.hubHost, port: config.httpPort },
-    {
-      files: new StaticFileHandler(PUBLIC_DIR),
-      events: new SnapshotBroadcaster(summary, intervalTimer, config.snapshotIntervalMs),
-    },
+    { files: new StaticFileHandler(PUBLIC_DIR), events: broadcaster },
     consoleLogger,
   );
 
   const [port, httpPort] = await startAll([receiver, web]);
+  broadcaster.start();
   consoleLogger.info(`PulseHub hub listening on udp/${port}`);
   consoleLogger.info(`PulseHub dashboard on http://localhost:${httpPort}`);
-  const statusTimer = setInterval(
-    () => consoleLogger.info(formatStatusLine(summary.snapshot())),
-    STATUS_LINE_INTERVAL_MS,
+  const stopStatusLine = intervalTimer.every(STATUS_LINE_INTERVAL_MS, () =>
+    consoleLogger.info(formatStatusLine(summary.snapshot())),
   );
 
   const shutdown = (): void => {
-    clearInterval(statusTimer);
+    stopStatusLine();
+    broadcaster.stop();
     void Promise.all([receiver.stop(), web.stop()]).then(() => consoleLogger.info("PulseHub hub stopped"));
   };
   process.once("SIGINT", shutdown);

@@ -17,12 +17,14 @@ describe("HttpServer", () => {
   let publicDir: string;
   let server: HttpServer;
   let baseUrl: string;
+  let timer: FakeTimer;
 
   beforeEach(async () => {
     publicDir = await mkdtemp(join(tmpdir(), "pulsehub-public-"));
     await writeFile(join(publicDir, "index.html"), INDEX_HTML);
     await writeFile(join(publicDir, "secret.txt"), "secret");
-    const events = new SnapshotBroadcaster(new FakeProvider(), new FakeTimer(), INTERVAL_MS);
+    timer = new FakeTimer();
+    const events = new SnapshotBroadcaster(new FakeProvider(), timer, INTERVAL_MS);
     server = new HttpServer(
       ANY_FREE_ADDRESS,
       { files: new StaticFileHandler(publicDir), events },
@@ -34,6 +36,10 @@ describe("HttpServer", () => {
   afterEach(async () => {
     await server.stop();
     await rm(publicDir, { recursive: true, force: true });
+  });
+
+  it("leaves starting the snapshot stream to its owner", () => {
+    expect(timer.pending).toBe(0);
   });
 
   it("serves the dashboard page on /", async () => {
