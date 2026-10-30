@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { Logger } from "../logger.js";
+import type { ListenAddress } from "../startup.js";
 import type { EventStream } from "./snapshotBroadcaster.js";
 import { sendNotFound, type FileServer } from "./staticFiles.js";
 
@@ -18,18 +19,18 @@ export class HttpServer {
   private server: Server | undefined;
 
   constructor(
-    private readonly port: number,
+    private readonly address: ListenAddress,
     private readonly routes: HttpRoutes,
     private readonly logger: Logger,
   ) {}
 
-  /** Listens on the port, starts the snapshot stream and resolves with the bound port. */
+  /** Listens on the address, starts the snapshot stream and resolves with the bound port. */
   start(): Promise<number> {
     const server = createServer((request, response) => this.route(request, response));
     this.server = server;
     return new Promise((resolve, reject) => {
       server.once("error", reject);
-      server.listen(this.port, () => {
+      server.listen(this.address.port, this.address.host, () => {
         server.off("error", reject);
         server.on("error", (error) => this.logger.error(`http server error: ${error.message}`));
         this.routes.events.start();

@@ -44,9 +44,9 @@ async function main(): Promise<void> {
     statuses: new DeviceStatusEvaluator(clock, config.offlineAfterMs, buildStatusRules(config)),
     alerts,
   });
-  const receiver = new UdpReceiver(config.hubPort, (bytes) => pipeline.handle(bytes), consoleLogger);
+  const receiver = new UdpReceiver({ host: config.hubHost, port: config.hubPort }, (bytes) => pipeline.handle(bytes), consoleLogger);
   const web = new HttpServer(
-    config.httpPort,
+    { host: config.hubHost, port: config.httpPort },
     {
       files: new StaticFileHandler(PUBLIC_DIR),
       events: new SnapshotBroadcaster(summary, intervalTimer, config.snapshotIntervalMs),

@@ -7,7 +7,8 @@ import { SnapshotBroadcaster } from "../../../src/hub/http/snapshotBroadcaster.j
 import { StaticFileHandler } from "../../../src/hub/http/staticFiles.js";
 import { FakeProvider, FakeTimer, emptySnapshot } from "./fakes.js";
 
-const ANY_FREE_PORT = 0;
+const LOOPBACK = "127.0.0.1";
+const ANY_FREE_ADDRESS = { host: LOOPBACK, port: 0 };
 const INTERVAL_MS = 250;
 const INDEX_HTML = "<!doctype html><title>PulseHub</title>";
 const SSE_PREFIX = "data: ";
@@ -23,11 +24,11 @@ describe("HttpServer", () => {
     await writeFile(join(publicDir, "secret.txt"), "secret");
     const events = new SnapshotBroadcaster(new FakeProvider(), new FakeTimer(), INTERVAL_MS);
     server = new HttpServer(
-      ANY_FREE_PORT,
+      ANY_FREE_ADDRESS,
       { files: new StaticFileHandler(publicDir), events },
       { info: vi.fn(), error: vi.fn() },
     );
-    baseUrl = `http://localhost:${await server.start()}`;
+    baseUrl = `http://${LOOPBACK}:${await server.start()}`;
   });
 
   afterEach(async () => {
@@ -61,7 +62,7 @@ describe("HttpServer", () => {
 
   it("stops without error when never started", async () => {
     const events = new SnapshotBroadcaster(new FakeProvider(), new FakeTimer(), INTERVAL_MS);
-    const idle = new HttpServer(ANY_FREE_PORT, { files: new StaticFileHandler(publicDir), events }, {
+    const idle = new HttpServer(ANY_FREE_ADDRESS, { files: new StaticFileHandler(publicDir), events }, {
       info: vi.fn(),
       error: vi.fn(),
     });

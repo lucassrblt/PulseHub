@@ -5,6 +5,7 @@ import { UdpReceiver, type DatagramHandler } from "../../src/hub/udpReceiver.js"
 
 const ANY_FREE_PORT = 0;
 const LOOPBACK = "127.0.0.1";
+const ANY_FREE_ADDRESS = { host: LOOPBACK, port: ANY_FREE_PORT };
 
 function silentLogger(): Logger {
   return { info: vi.fn(), error: vi.fn() };
@@ -28,7 +29,7 @@ describe("UdpReceiver", () => {
   });
 
   async function startWith(handler: DatagramHandler, logger: Logger): Promise<number> {
-    receiver = new UdpReceiver(ANY_FREE_PORT, handler, logger);
+    receiver = new UdpReceiver(ANY_FREE_ADDRESS, handler, logger);
     return receiver.start();
   }
 
@@ -54,11 +55,11 @@ describe("UdpReceiver", () => {
 
   it("rejects start when the port is already taken", async () => {
     const port = await startWith(() => undefined, silentLogger());
-    const second = new UdpReceiver(port, () => undefined, silentLogger());
+    const second = new UdpReceiver({ host: LOOPBACK, port }, () => undefined, silentLogger());
     await expect(second.start()).rejects.toThrow();
   });
 
   it("stops without error when never started", async () => {
-    await expect(new UdpReceiver(ANY_FREE_PORT, () => undefined, silentLogger()).stop()).resolves.toBeUndefined();
+    await expect(new UdpReceiver(ANY_FREE_ADDRESS, () => undefined, silentLogger()).stop()).resolves.toBeUndefined();
   });
 });
