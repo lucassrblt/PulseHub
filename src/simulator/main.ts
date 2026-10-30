@@ -3,6 +3,7 @@ import { createDevices } from "./device.js";
 import { AnomalyFault } from "./faults/anomaly.js";
 import { ChecksumFault } from "./faults/checksum.js";
 import { DuplicateFault } from "./faults/duplicate.js";
+import { HotFault } from "./faults/hot.js";
 import { RebootFault } from "./faults/reboot.js";
 import { ReorderFault } from "./faults/reorder.js";
 import type { FaultStage } from "./faults/stage.js";
@@ -31,6 +32,7 @@ function buildStages(
 ): FaultStage[] {
   return [
     new StopFault(new Set(ids), clock.now() + config.stopAfterMs, clock),
+    new HotFault(new Set(config.hotIds), clock.now() + config.hotAfterMs, clock),
     new AnomalyFault(config.faultAnomaly, random),
     new ChecksumFault(config.faultChecksum, random),
     new ReorderFault(config.faultReorder, random),
