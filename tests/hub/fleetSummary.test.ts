@@ -7,7 +7,7 @@ import { DeviceStatusEvaluator } from "../../src/hub/deviceStatus.js";
 import { FleetSummary } from "../../src/hub/fleetSummary.js";
 import { ReceptionStats } from "../../src/hub/receptionStats.js";
 import { buildStatusRules } from "../../src/hub/statusRules.js";
-import { buildOutOfRangePredicate } from "../../src/hub/thresholds.js";
+import { buildOutOfRangePredicate, thresholdLimits } from "../../src/hub/thresholds.js";
 import { FakeClock } from "./fakeClock.js";
 import { NOMINAL, telemetry } from "./frames.js";
 
@@ -30,6 +30,7 @@ describe("FleetSummary", () => {
       devices: registry,
       statuses: new DeviceStatusEvaluator(clock, CONFIG.offlineAfterMs, buildStatusRules(CONFIG)),
       alerts: new AlertEngine(clock, buildAlertRules(CONFIG), CONFIG),
+      thresholds: thresholdLimits(CONFIG),
     });
   });
 
@@ -55,7 +56,15 @@ describe("FleetSummary", () => {
         framesPerSecond: 0,
         lossRatePct: 0,
         invalidRatePct: 0,
+        healthWindowMs: 10_000,
         health: "OK",
+      },
+      thresholds: {
+        temperatureWarnC: 60,
+        temperatureCritC: 70,
+        voltageMinMv: 22_000,
+        voltageMaxMv: 26_000,
+        currentMaxMa: 10_000,
       },
       fleet: { total: 0, online: 0, ok: 0, warn: 0, crit: 0, offline: 0, outOfRangeFrames: 0, reboots: 0 },
       hottest: [],
@@ -101,6 +110,20 @@ describe("FleetSummary", () => {
   it("ranks the five hottest online devices", () => {
     [2000, 4500, 3000, 7000, 1000, 6500, 5000].forEach((hundredthsC, index) => addDevice(index + 1, hundredthsC));
     expect(summary.snapshot().hottest.map((device) => device.temperatureC)).toEqual([70, 65, 50, 45, 30]);
+  });
+
+  it("exposes the configured thresholds", () => {
+    const config = loadConfig({ TEMP_WARN_C: "50", TEMP_CRIT_C: "55" });
+    const custom = new FleetSummary({
+      clock,
+      startedAtMs: STARTED_AT,
+      reception: new ReceptionStats(clock, config),
+      devices: registry,
+      statuses: new DeviceStatusEvaluator(clock, config.offlineAfterMs, buildStatusRules(config)),
+      alerts: new AlertEngine(clock, buildAlertRules(config), config),
+      thresholds: thresholdLimits(config),
+    });
+    expect(custom.snapshot().thresholds).toMatchObject({ temperatureWarnC: 50, temperatureCritC: 55 });
   });
 
   it("reports the hub uptime", () => {

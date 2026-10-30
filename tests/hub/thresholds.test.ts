@@ -3,7 +3,7 @@ import { buildAlertRules } from "../../src/hub/alertRules.js";
 import { loadConfig } from "../../src/hub/config.js";
 import type { DeviceReadings } from "../../src/hub/readings.js";
 import { buildStatusRules } from "../../src/hub/statusRules.js";
-import { buildThresholdPredicates } from "../../src/hub/thresholds.js";
+import { buildThresholdPredicates, thresholdLimits } from "../../src/hub/thresholds.js";
 
 const CONFIG = loadConfig({});
 const breaks = buildThresholdPredicates(CONFIG);
@@ -42,5 +42,18 @@ describe("status and alert rules", () => {
     expect(buildStatusRules(CONFIG).map((rule) => rule(atCrit))).toContain("CRIT");
     const alert = buildAlertRules(CONFIG).find((rule) => rule.id === "temperature-critical");
     expect(alert?.isTriggered(atCrit)).toBe(true);
+  });
+});
+
+describe("thresholdLimits", () => {
+  it("names every configured threshold for the snapshot", () => {
+    const config = loadConfig({ TEMP_WARN_C: "50", TEMP_CRIT_C: "55", VOLTAGE_MIN_MV: "21000", VOLTAGE_MAX_MV: "25000", CURRENT_MAX_MA: "9000" });
+    expect(thresholdLimits(config)).toEqual({
+      temperatureWarnC: 50,
+      temperatureCritC: 55,
+      voltageMinMv: 21_000,
+      voltageMaxMv: 25_000,
+      currentMaxMa: 9000,
+    });
   });
 });
