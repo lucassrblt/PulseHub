@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { ReceptionStats, type ReceptionSettings } from "../../src/hub/receptionStats.js";
 import { FakeClock } from "./fakeClock.js";
 
-const SETTINGS: ReceptionSettings = { rateWindowMs: 1000, lossWarnPct: 1, lossCritPct: 5 };
+const SETTINGS: ReceptionSettings = { rateWindowMs: 1000, healthWindowMs: 10_000, lossWarnPct: 1, lossCritPct: 5 };
 
 const ACCEPTED = { kind: "accepted", lost: 0, rebooted: false, resynced: false } as const;
 
@@ -84,6 +84,28 @@ describe("ReceptionStats", () => {
     stats.recordInvalid("BAD_MAGIC");
     expect(stats.summary().invalidRatePct).toBe(10);
     expect(stats.summary().health).toBe("CRIT");
+  });
+
+  it("recovers OK health once a loss burst has left the health window", () => {
+    receiveAccepted(stats, 100, 50);
+    expect(stats.summary().health).toBe("CRIT");
+    clock.advance(SETTINGS.healthWindowMs);
+    receiveAccepted(stats, 10);
+    expect(stats.summary()).toMatchObject({ lost: 50, accepted: 110, lossRatePct: 0, health: "OK" });
+  });
+
+  it("recovers OK health once an invalid burst has left the health window", () => {
+    stats.recordReceived();
+    stats.recordInvalid("BAD_CHECKSUM");
+    expect(stats.summary().health).toBe("CRIT");
+    clock.advance(SETTINGS.healthWindowMs);
+    expect(stats.summary()).toMatchObject({ invalid: 1, invalidRatePct: 0, health: "OK" });
+  });
+
+  it("reports zero rates and OK health when the window holds no traffic", () => {
+    receiveAccepted(stats, 10, 10);
+    clock.advance(SETTINGS.healthWindowMs);
+    expect(stats.summary()).toMatchObject({ lossRatePct: 0, invalidRatePct: 0, health: "OK" });
   });
 
   it("measures frames per second over the sliding window", () => {

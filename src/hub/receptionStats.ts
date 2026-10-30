@@ -7,7 +7,11 @@ import type { SequenceVerdict } from "./sequencer.js";
 
 const PERCENT = 100;
 
-/** Reception counters and derived rates exposed to the snapshot. */
+/**
+ * Reception counters since start and rates exposed to the snapshot.
+ * lossRatePct, invalidRatePct and health cover the last health window only, so they recover after a burst;
+ * with no traffic in that window both rates are 0 and health is OK.
+ */
 export interface ReceptionSummary {
   readonly received: number;
   readonly valid: number;
@@ -37,11 +41,19 @@ export interface ReceptionSource {
 }
 
 /** Settings needed by the reception statistics. */
-export type ReceptionSettings = Pick<HubConfig, "rateWindowMs" | "lossWarnPct" | "lossCritPct">;
+export type ReceptionSettings = Pick<HubConfig, "rateWindowMs" | "healthWindowMs" | "lossWarnPct" | "lossCritPct">;
+
+interface HealthWindow {
+  readonly received: RateMeter;
+  readonly invalid: RateMeter;
+  readonly accepted: RateMeter;
+  readonly lost: RateMeter;
+}
 
 /** Counts received, invalid, accepted, duplicate, late and lost frames and resyncs, and derives the rates. */
 export class ReceptionStats implements ReceptionRecorder, ReceptionSource {
   private readonly rate: RateMeter;
+  private readonly recent: HealthWindow;
   private readonly invalidByReason: Partial<Record<DecodeErrorReason, number>> = {};
   private received = 0;
   private invalid = 0;
@@ -56,15 +68,19 @@ export class ReceptionStats implements ReceptionRecorder, ReceptionSource {
     private readonly settings: ReceptionSettings,
   ) {
     this.rate = new RateMeter(clock, settings.rateWindowMs);
+    const windowed = (): RateMeter => new RateMeter(clock, settings.healthWindowMs);
+    this.recent = { received: windowed(), invalid: windowed(), accepted: windowed(), lost: windowed() };
   }
 
   recordReceived(): void {
     this.received++;
     this.rate.record();
+    this.recent.received.record();
   }
 
   recordInvalid(reason: DecodeErrorReason): void {
     this.invalid++;
+    this.recent.invalid.record();
     this.invalidByReason[reason] = (this.invalidByReason[reason] ?? 0) + 1;
   }
 
@@ -72,6 +88,10 @@ export class ReceptionStats implements ReceptionRecorder, ReceptionSource {
     if (verdict.kind === "accepted") {
       this.accepted++;
       this.lost += verdict.lost;
+      this.recent.accepted.record();
+      if (verdict.lost > 0) {
+        this.recent.lost.record(verdict.lost);
+      }
       this.resyncs += verdict.resynced ? 1 : 0;
     } else if (verdict.kind === "duplicate") {
       this.duplicates++;
@@ -81,8 +101,9 @@ export class ReceptionStats implements ReceptionRecorder, ReceptionSource {
   }
 
   summary(): ReceptionSummary {
-    const lossRatePct = percentage(this.lost, this.accepted + this.lost);
-    const invalidRatePct = percentage(this.invalid, this.received);
+    const recentLost = this.recent.lost.total();
+    const lossRatePct = percentage(recentLost, this.recent.accepted.total() + recentLost);
+    const invalidRatePct = percentage(this.recent.invalid.total(), this.recent.received.total());
     return {
       received: this.received,
       valid: this.received - this.invalid,

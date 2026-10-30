@@ -13,6 +13,7 @@ export interface HubConfig {
   readonly lossWarnPct: number;
   readonly lossCritPct: number;
   readonly rateWindowMs: number;
+  readonly healthWindowMs: number;
   readonly rebootUptimeDropMs: number;
   readonly maxSeqGap: number;
 }
@@ -31,6 +32,7 @@ const MIN_PORT = 1;
 const MAX_PORT = 65535;
 const MIN_DURATION_MS = 1;
 const MAX_DURATION_MS = 86_400_000;
+const MAX_WINDOW_MS = 60_000;
 const MIN_TEMPERATURE_C = -273;
 const MAX_TEMPERATURE_C = 1000;
 const MIN_INT16_READING = 0;
@@ -54,6 +56,7 @@ const SETTINGS = {
   lossWarnPct: { key: "LOSS_WARN_PCT", fallback: 1, min: MIN_PERCENT, max: MAX_PERCENT },
   lossCritPct: { key: "LOSS_CRIT_PCT", fallback: 5, min: MIN_PERCENT, max: MAX_PERCENT },
   rateWindowMs: { key: "RATE_WINDOW_MS", fallback: 1000, min: MIN_DURATION_MS, max: MAX_DURATION_MS },
+  healthWindowMs: { key: "HEALTH_WINDOW_MS", fallback: 10_000, min: MIN_DURATION_MS, max: MAX_WINDOW_MS },
   rebootUptimeDropMs: { key: "REBOOT_UPTIME_DROP_MS", fallback: 1000, min: MIN_DURATION_MS, max: MAX_DURATION_MS },
   maxSeqGap: { key: "MAX_SEQ_GAP", fallback: 1000, min: MIN_SEQ_GAP, max: MAX_SEQ_GAP },
 } as const satisfies Record<keyof HubConfig, IntegerSetting>;
@@ -79,6 +82,7 @@ export function loadConfig(env: EnvSource): HubConfig {
     lossWarnPct: readInteger(env, SETTINGS.lossWarnPct),
     lossCritPct: readInteger(env, SETTINGS.lossCritPct),
     rateWindowMs: readInteger(env, SETTINGS.rateWindowMs),
+    healthWindowMs: readInteger(env, SETTINGS.healthWindowMs),
     rebootUptimeDropMs: readInteger(env, SETTINGS.rebootUptimeDropMs),
     maxSeqGap: readInteger(env, SETTINGS.maxSeqGap),
   };
