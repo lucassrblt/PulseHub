@@ -12,6 +12,7 @@ import { NOMINAL, heartbeat, telemetry } from "./frames.js";
 
 const CONFIG = loadConfig({});
 const DEVICE = 4;
+const SECOND = 1000;
 
 describe("FramePipeline", () => {
   let clock: FakeClock;
@@ -24,7 +25,7 @@ describe("FramePipeline", () => {
     clock = new FakeClock();
     stats = new ReceptionStats(clock, CONFIG);
     registry = new DeviceRegistry(clock);
-    alerts = new AlertEngine(clock, buildAlertRules(CONFIG), CONFIG.alertDurationMs);
+    alerts = new AlertEngine(clock, buildAlertRules(CONFIG), CONFIG);
     pipeline = new FramePipeline({
       decode: decodeFrame,
       stats,
@@ -47,9 +48,21 @@ describe("FramePipeline", () => {
     expect(registry.list()).toMatchObject([{ deviceId: DEVICE, lastSeq: 6, lost: 2, late: 1, duplicates: 1 }]);
   });
 
+  function sendHotFrames(seqs: readonly number[]): void {
+    seqs.forEach((seq) => {
+      pipeline.handle(encodeFrame(telemetry(DEVICE, seq, { ...NOMINAL, hundredthsC: 8000 })));
+      clock.advance(SECOND);
+    });
+  }
+
   it("feeds accepted device states to the alert engine", () => {
-    pipeline.handle(encodeFrame(telemetry(DEVICE, 1, { ...NOMINAL, hundredthsC: 8000 })));
-    clock.advance(CONFIG.alertDurationMs);
+    sendHotFrames([1, 2, 3, 4]);
     expect(alerts.active()).toMatchObject([{ deviceId: DEVICE, ruleId: "temperature-critical" }]);
+  });
+
+  it("never turns a one-frame anomaly followed by silence into an active alert", () => {
+    sendHotFrames([1]);
+    clock.advance(CONFIG.alertDurationMs);
+    expect(alerts.active()).toEqual([]);
   });
 });

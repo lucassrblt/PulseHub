@@ -28,7 +28,7 @@ describe("FleetSummary", () => {
       reception: new ReceptionStats(clock, CONFIG),
       devices: registry,
       statuses: new DeviceStatusEvaluator(clock, CONFIG.offlineAfterMs, buildStatusRules(CONFIG)),
-      alerts: new AlertEngine(clock, buildAlertRules(CONFIG), CONFIG.alertDurationMs),
+      alerts: new AlertEngine(clock, buildAlertRules(CONFIG), CONFIG),
     });
   });
 

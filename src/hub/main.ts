@@ -28,7 +28,7 @@ async function main(): Promise<void> {
   const clock = systemClock;
   const stats = new ReceptionStats(clock, config);
   const registry = new DeviceRegistry(clock);
-  const alerts = new AlertEngine(clock, buildAlertRules(config), config.alertDurationMs);
+  const alerts = new AlertEngine(clock, buildAlertRules(config), config);
   const pipeline = new FramePipeline({
     decode: decodeFrame,
     stats,
