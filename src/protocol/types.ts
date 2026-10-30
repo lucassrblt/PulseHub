@@ -21,6 +21,11 @@ export interface Frame {
   readonly measurements: readonly Measurement[];
 }
 
+/** Frame returned by the decoder, with the number of measurements skipped for an unknown metric id. */
+export interface DecodedFrame extends Frame {
+  readonly skippedMeasurements: number;
+}
+
 /** Why a datagram was rejected by the decoder. */
 export type DecodeErrorReason =
   | "TOO_SHORT"

@@ -1,11 +1,11 @@
-import type { DecodeError, Frame, Result } from "../protocol/index.js";
+import type { DecodeError, DecodedFrame, Result } from "../protocol/index.js";
 import type { AlertTracker } from "./alertEngine.js";
 import type { DeviceRecorder } from "./deviceRegistry.js";
 import type { ReceptionRecorder } from "./receptionStats.js";
 import type { FrameSequencer } from "./sequencer.js";
 
 /** Turns raw bytes into a frame or a decode error. */
-export type FrameDecoder = (bytes: Uint8Array) => Result<Frame, DecodeError>;
+export type FrameDecoder = (bytes: Uint8Array) => Result<DecodedFrame, DecodeError>;
 
 /** Collaborators of the frame pipeline. */
 export interface PipelineDeps {

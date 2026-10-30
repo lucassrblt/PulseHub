@@ -46,24 +46,30 @@ describe("decodeFrame", () => {
   it("decodes the reference heartbeat from the specification", () => {
     expect(decodeFrame(REFERENCE_HEARTBEAT_BYTES)).toEqual({
       ok: true,
-      value: REFERENCE_HEARTBEAT_FRAME,
+      value: { ...REFERENCE_HEARTBEAT_FRAME, skippedMeasurements: 0 },
     });
   });
 
   it("round-trips a telemetry frame with negative and extreme int16 values", () => {
-    expect(decodeFrame(encodeFrame(TELEMETRY_FRAME))).toEqual({ ok: true, value: TELEMETRY_FRAME });
+    expect(decodeFrame(encodeFrame(TELEMETRY_FRAME))).toEqual({
+      ok: true,
+      value: { ...TELEMETRY_FRAME, skippedMeasurements: 0 },
+    });
   });
 
   it("decodes a Buffer that is a slice of a larger allocation", () => {
     const padded = Buffer.concat([Buffer.from([0xaa, 0xbb, 0xcc]), REFERENCE_HEARTBEAT_BYTES]);
-    expect(decodeFrame(padded.subarray(3))).toEqual({ ok: true, value: REFERENCE_HEARTBEAT_FRAME });
+    expect(decodeFrame(padded.subarray(3))).toEqual({
+      ok: true,
+      value: { ...REFERENCE_HEARTBEAT_FRAME, skippedMeasurements: 0 },
+    });
   });
 
-  it("skips measurements with an unknown metric id and keeps the frame", () => {
+  it("skips and counts measurements with an unknown metric id and keeps the frame", () => {
     const bytes = patchByte(encodeFrame(TELEMETRY_FRAME), FIELD_OFFSET.MEASUREMENTS, UNKNOWN_METRIC_ID);
     expect(decodeFrame(bytes)).toEqual({
       ok: true,
-      value: { ...TELEMETRY_FRAME, measurements: TELEMETRY_FRAME.measurements.slice(1) },
+      value: { ...TELEMETRY_FRAME, measurements: TELEMETRY_FRAME.measurements.slice(1), skippedMeasurements: 1 },
     });
   });
 
