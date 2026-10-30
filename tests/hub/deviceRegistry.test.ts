@@ -4,7 +4,7 @@ import { FakeClock } from "./fakeClock.js";
 import { NOMINAL, heartbeat, telemetry } from "./frames.js";
 
 const DEVICE = 7;
-const ACCEPTED = { kind: "accepted", lost: 0, rebooted: false } as const;
+const ACCEPTED = { kind: "accepted", lost: 0, rebooted: false, resynced: false } as const;
 
 describe("DeviceRegistry", () => {
   let clock: FakeClock;
@@ -33,6 +33,7 @@ describe("DeviceRegistry", () => {
       duplicates: 0,
       late: 0,
       reboots: 0,
+      resyncs: 0,
     });
   });
 
@@ -46,7 +47,7 @@ describe("DeviceRegistry", () => {
 
   it("accumulates lost, duplicate and late counters per device", () => {
     registry.record(heartbeat(DEVICE, 1), ACCEPTED);
-    registry.record(heartbeat(DEVICE, 5), { kind: "accepted", lost: 3, rebooted: false });
+    registry.record(heartbeat(DEVICE, 5), { ...ACCEPTED, lost: 3 });
     registry.record(heartbeat(DEVICE, 5), { kind: "duplicate" });
     const device = registry.record(heartbeat(DEVICE, 4), { kind: "late" });
     expect(device).toMatchObject({ lost: 3, duplicates: 1, late: 1, lastSeq: 5 });
@@ -54,8 +55,14 @@ describe("DeviceRegistry", () => {
 
   it("counts reboots and takes the new seq as baseline", () => {
     registry.record(heartbeat(DEVICE, 500), ACCEPTED);
-    const device = registry.record(heartbeat(DEVICE, 1), { kind: "accepted", lost: 0, rebooted: true });
+    const device = registry.record(heartbeat(DEVICE, 1), { ...ACCEPTED, rebooted: true });
     expect(device).toMatchObject({ reboots: 1, lastSeq: 1 });
+  });
+
+  it("counts resyncs and takes the new seq as baseline", () => {
+    registry.record(heartbeat(DEVICE, 500), ACCEPTED);
+    const device = registry.record(heartbeat(DEVICE, 900_000), { ...ACCEPTED, resynced: true });
+    expect(device).toMatchObject({ resyncs: 1, lost: 0, lastSeq: 900_000 });
   });
 
   it("does not refresh last seen on a discarded frame", () => {

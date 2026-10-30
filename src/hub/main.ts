@@ -32,7 +32,7 @@ async function main(): Promise<void> {
   const pipeline = new FramePipeline({
     decode: decodeFrame,
     stats,
-    sequencer: new Sequencer(config.rebootUptimeDropMs),
+    sequencer: new Sequencer(config),
     devices: registry,
     alerts,
   });

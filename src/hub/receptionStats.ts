@@ -17,6 +17,7 @@ export interface ReceptionSummary {
   readonly duplicates: number;
   readonly late: number;
   readonly lost: number;
+  readonly resyncs: number;
   readonly framesPerSecond: number;
   readonly lossRatePct: number;
   readonly invalidRatePct: number;
@@ -38,7 +39,7 @@ export interface ReceptionSource {
 /** Settings needed by the reception statistics. */
 export type ReceptionSettings = Pick<HubConfig, "rateWindowMs" | "lossWarnPct" | "lossCritPct">;
 
-/** Counts received, invalid, accepted, duplicate, late and lost frames and derives the rates. */
+/** Counts received, invalid, accepted, duplicate, late and lost frames and resyncs, and derives the rates. */
 export class ReceptionStats implements ReceptionRecorder, ReceptionSource {
   private readonly rate: RateMeter;
   private readonly invalidByReason: Partial<Record<DecodeErrorReason, number>> = {};
@@ -48,6 +49,7 @@ export class ReceptionStats implements ReceptionRecorder, ReceptionSource {
   private duplicates = 0;
   private late = 0;
   private lost = 0;
+  private resyncs = 0;
 
   constructor(
     clock: Clock,
@@ -70,6 +72,7 @@ export class ReceptionStats implements ReceptionRecorder, ReceptionSource {
     if (verdict.kind === "accepted") {
       this.accepted++;
       this.lost += verdict.lost;
+      this.resyncs += verdict.resynced ? 1 : 0;
     } else if (verdict.kind === "duplicate") {
       this.duplicates++;
     } else {
@@ -89,6 +92,7 @@ export class ReceptionStats implements ReceptionRecorder, ReceptionSource {
       duplicates: this.duplicates,
       late: this.late,
       lost: this.lost,
+      resyncs: this.resyncs,
       framesPerSecond: this.rate.perSecond(),
       lossRatePct,
       invalidRatePct,

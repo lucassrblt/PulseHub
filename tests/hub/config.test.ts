@@ -18,6 +18,7 @@ describe("loadConfig", () => {
       lossCritPct: 5,
       rateWindowMs: 1000,
       rebootUptimeDropMs: 1000,
+      maxSeqGap: 1000,
     });
   });
 
@@ -41,6 +42,8 @@ describe("loadConfig", () => {
     ["HUB_PORT", "70000"],
     ["OFFLINE_AFTER_MS", "1.5"],
     ["LOSS_CRIT_PCT", "101"],
+    ["MAX_SEQ_GAP", "0"],
+    ["MAX_SEQ_GAP", "2147483648"],
   ])("rejects %s=%s", (key, value) => {
     expect(() => loadConfig({ [key]: value })).toThrow(ConfigError);
   });

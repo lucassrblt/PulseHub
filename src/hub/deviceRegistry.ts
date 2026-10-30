@@ -13,6 +13,7 @@ export interface DeviceState extends DeviceReadings {
   readonly duplicates: number;
   readonly late: number;
   readonly reboots: number;
+  readonly resyncs: number;
 }
 
 /** Write side of the registry, used by the frame pipeline. */
@@ -57,6 +58,7 @@ export class DeviceRegistry implements DeviceRecorder, DeviceSource {
       lastSeq: frame.seq,
       lost: device.lost + verdict.lost,
       reboots: verdict.rebooted ? device.reboots + 1 : device.reboots,
+      resyncs: verdict.resynced ? device.resyncs + 1 : device.resyncs,
     };
   }
 
@@ -73,6 +75,7 @@ export class DeviceRegistry implements DeviceRecorder, DeviceSource {
       duplicates: 0,
       late: 0,
       reboots: 0,
+      resyncs: 0,
     };
   }
 }

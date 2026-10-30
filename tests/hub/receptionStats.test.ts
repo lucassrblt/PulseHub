@@ -4,10 +4,12 @@ import { FakeClock } from "./fakeClock.js";
 
 const SETTINGS: ReceptionSettings = { rateWindowMs: 1000, lossWarnPct: 1, lossCritPct: 5 };
 
+const ACCEPTED = { kind: "accepted", lost: 0, rebooted: false, resynced: false } as const;
+
 function receiveAccepted(stats: ReceptionStats, times: number, lost = 0): void {
   for (let index = 0; index < times; index++) {
     stats.recordReceived();
-    stats.recordVerdict({ kind: "accepted", lost: index === 0 ? lost : 0, rebooted: false });
+    stats.recordVerdict({ ...ACCEPTED, lost: index === 0 ? lost : 0 });
   }
 }
 
@@ -30,6 +32,7 @@ describe("ReceptionStats", () => {
       duplicates: 0,
       late: 0,
       lost: 0,
+      resyncs: 0,
       framesPerSecond: 0,
       lossRatePct: 0,
       invalidRatePct: 0,
@@ -53,11 +56,12 @@ describe("ReceptionStats", () => {
   });
 
   it("counts each verdict kind", () => {
-    stats.recordVerdict({ kind: "accepted", lost: 2, rebooted: false });
+    stats.recordVerdict({ ...ACCEPTED, lost: 2 });
+    stats.recordVerdict({ ...ACCEPTED, resynced: true });
     stats.recordVerdict({ kind: "duplicate" });
     stats.recordVerdict({ kind: "late" });
     stats.recordVerdict({ kind: "late" });
-    expect(stats.summary()).toMatchObject({ accepted: 1, lost: 2, duplicates: 1, late: 2 });
+    expect(stats.summary()).toMatchObject({ accepted: 2, lost: 2, resyncs: 1, duplicates: 1, late: 2 });
   });
 
   it("computes the loss rate as lost over accepted plus lost", () => {
@@ -68,9 +72,9 @@ describe("ReceptionStats", () => {
   it("reports OK, WARN and CRIT health from the loss rate", () => {
     receiveAccepted(stats, 1000);
     expect(stats.summary().health).toBe("OK");
-    stats.recordVerdict({ kind: "accepted", lost: 20, rebooted: false });
+    stats.recordVerdict({ ...ACCEPTED, lost: 20 });
     expect(stats.summary().health).toBe("WARN");
-    stats.recordVerdict({ kind: "accepted", lost: 60, rebooted: false });
+    stats.recordVerdict({ ...ACCEPTED, lost: 60 });
     expect(stats.summary().health).toBe("CRIT");
   });
 

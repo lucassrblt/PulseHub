@@ -28,7 +28,7 @@ describe("FramePipeline", () => {
     pipeline = new FramePipeline({
       decode: decodeFrame,
       stats,
-      sequencer: new Sequencer(CONFIG.rebootUptimeDropMs),
+      sequencer: new Sequencer(CONFIG),
       devices: registry,
       alerts,
     });

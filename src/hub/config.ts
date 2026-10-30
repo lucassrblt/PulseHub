@@ -14,6 +14,7 @@ export interface HubConfig {
   readonly lossCritPct: number;
   readonly rateWindowMs: number;
   readonly rebootUptimeDropMs: number;
+  readonly maxSeqGap: number;
 }
 
 /** Environment variables as read from process.env. */
@@ -36,6 +37,8 @@ const MIN_INT16_READING = 0;
 const MAX_INT16_READING = 32767;
 const MIN_PERCENT = 0;
 const MAX_PERCENT = 100;
+const MIN_SEQ_GAP = 1;
+const MAX_SEQ_GAP = 2 ** 31 - 1;
 
 const SETTINGS = {
   hubPort: { key: "HUB_PORT", fallback: 9000, min: MIN_PORT, max: MAX_PORT },
@@ -52,6 +55,7 @@ const SETTINGS = {
   lossCritPct: { key: "LOSS_CRIT_PCT", fallback: 5, min: MIN_PERCENT, max: MAX_PERCENT },
   rateWindowMs: { key: "RATE_WINDOW_MS", fallback: 1000, min: MIN_DURATION_MS, max: MAX_DURATION_MS },
   rebootUptimeDropMs: { key: "REBOOT_UPTIME_DROP_MS", fallback: 1000, min: MIN_DURATION_MS, max: MAX_DURATION_MS },
+  maxSeqGap: { key: "MAX_SEQ_GAP", fallback: 1000, min: MIN_SEQ_GAP, max: MAX_SEQ_GAP },
 } as const satisfies Record<keyof HubConfig, IntegerSetting>;
 
 /** Raised at startup when an environment variable holds an invalid value. */
@@ -76,6 +80,7 @@ export function loadConfig(env: EnvSource): HubConfig {
     lossCritPct: readInteger(env, SETTINGS.lossCritPct),
     rateWindowMs: readInteger(env, SETTINGS.rateWindowMs),
     rebootUptimeDropMs: readInteger(env, SETTINGS.rebootUptimeDropMs),
+    maxSeqGap: readInteger(env, SETTINGS.maxSeqGap),
   };
   requireLess(SETTINGS.tempWarnC, config.tempWarnC, SETTINGS.tempCritC, config.tempCritC);
   requireLess(SETTINGS.voltageMinMv, config.voltageMinMv, SETTINGS.voltageMaxMv, config.voltageMaxMv);

@@ -14,6 +14,7 @@ const SNAPSHOT: FleetSnapshot = {
     duplicates: 3,
     late: 2,
     lost: 4,
+    resyncs: 0,
     framesPerSecond: 12.345,
     lossRatePct: 3.5087,
     invalidRatePct: 4.1667,
