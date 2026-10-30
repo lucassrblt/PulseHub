@@ -1,6 +1,6 @@
 import type { FleetSnapshot, SnapshotProvider } from "../../../src/hub/fleetSummary.js";
 import type { SseClient } from "../../../src/hub/http/snapshotBroadcaster.js";
-import type { Cancel, Timer } from "../../../src/hub/timer.js";
+import type { Cancel, Timer } from "../../../src/shared/time.js";
 
 /** Snapshot of a fresh hub with the given uptime. */
 export function emptySnapshot(hubUptimeMs = 0): FleetSnapshot {
@@ -16,12 +16,14 @@ export function emptySnapshot(hubUptimeMs = 0): FleetSnapshot {
       duplicates: 0,
       late: 0,
       lost: 0,
+      resyncs: 0,
+      unknownMetrics: 0,
       framesPerSecond: 0,
       lossRatePct: 0,
       invalidRatePct: 0,
       health: "OK",
     },
-    fleet: { total: 0, online: 0, ok: 0, warn: 0, crit: 0, offline: 0 },
+    fleet: { total: 0, online: 0, ok: 0, warn: 0, crit: 0, offline: 0, outOfRangeFrames: 0, reboots: 0 },
     hottest: [],
     devices: [],
     alerts: [],

@@ -1,5 +1,5 @@
 import type { FleetSnapshot, SnapshotProvider } from "../fleetSummary.js";
-import type { Cancel, Timer } from "../timer.js";
+import type { Cancel, Timer } from "../../shared/time.js";
 import { HTTP_STATUS } from "./httpStatus.js";
 
 const SSE_HEADERS = {
@@ -19,8 +19,6 @@ export interface SseClient {
 /** Live stream of snapshots that clients can subscribe to. */
 export interface EventStream {
   connect(client: SseClient): void;
-  start(): void;
-  stop(): void;
 }
 
 /** Formats a snapshot as one Server-Sent Events message. */
@@ -51,10 +49,12 @@ export class SnapshotBroadcaster implements EventStream {
     client.once("close", () => this.clients.delete(client));
   }
 
+  /** Starts sending a snapshot to the connected clients every interval. */
   start(): void {
     this.cancel = this.timer.every(this.intervalMs, () => this.broadcast());
   }
 
+  /** Stops the interval and ends every connected client. */
   stop(): void {
     this.cancel?.();
     this.cancel = undefined;

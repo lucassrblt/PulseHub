@@ -1,5 +1,5 @@
 import type { ActiveAlert, AlertSource } from "./alertEngine.js";
-import type { Clock } from "./clock.js";
+import type { Clock } from "../shared/time.js";
 import type { DeviceSource, DeviceState } from "./deviceRegistry.js";
 import type { DeviceStatus, DeviceStatusPolicy } from "./deviceStatus.js";
 import type { ReceptionSource, ReceptionSummary } from "./receptionStats.js";
@@ -11,7 +11,7 @@ export interface DeviceView extends DeviceState {
   readonly status: DeviceStatus;
 }
 
-/** Number of devices per status. */
+/** Number of devices per status, and out-of-range frames and reboots summed over the devices. */
 export interface FleetCounts {
   readonly total: number;
   readonly online: number;
@@ -19,6 +19,8 @@ export interface FleetCounts {
   readonly warn: number;
   readonly crit: number;
   readonly offline: number;
+  readonly outOfRangeFrames: number;
+  readonly reboots: number;
 }
 
 /** Plain serializable view of the whole hub, consumed by the visualization. */
@@ -71,6 +73,8 @@ export class FleetSummary implements SnapshotProvider {
 
 function countByStatus(devices: readonly DeviceView[]): FleetCounts {
   const countOf = (status: DeviceStatus): number => devices.filter((device) => device.status === status).length;
+  const sumOf = (counter: (device: DeviceView) => number): number =>
+    devices.reduce((sum, device) => sum + counter(device), 0);
   const offline = countOf("OFFLINE");
   return {
     total: devices.length,
@@ -79,6 +83,8 @@ function countByStatus(devices: readonly DeviceView[]): FleetCounts {
     warn: countOf("WARN"),
     crit: countOf("CRIT"),
     offline,
+    outOfRangeFrames: sumOf((device) => device.outOfRange),
+    reboots: sumOf((device) => device.reboots),
   };
 }
 

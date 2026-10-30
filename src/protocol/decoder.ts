@@ -3,10 +3,10 @@ import { FRAME_CHECKS, type FrameBytes } from "./checks.js";
 import { isMetricId } from "./guards.js";
 import { measurementOffset, viewOf } from "./layout.js";
 import { err, ok } from "./result.js";
-import type { DecodeError, Frame, FrameType, Measurement, Result } from "./types.js";
+import type { DecodeError, DecodedFrame, FrameType, Measurement, Result } from "./types.js";
 
-/** Decodes one PulseHub v1 datagram. Never throws; unknown metrics are skipped. */
-export function decodeFrame(buf: Uint8Array): Result<Frame, DecodeError> {
+/** Decodes one PulseHub v1 datagram. Never throws; unknown metrics are skipped and counted. */
+export function decodeFrame(buf: Uint8Array): Result<DecodedFrame, DecodeError> {
   const frame: FrameBytes = { bytes: buf, view: viewOf(buf) };
   const error = firstViolation(frame);
   return error ? err(error) : ok(readFrame(frame.view));
@@ -22,13 +22,16 @@ function firstViolation(frame: FrameBytes): DecodeError | undefined {
   return undefined;
 }
 
-function readFrame(view: DataView): Frame {
+function readFrame(view: DataView): DecodedFrame {
+  const count = view.getUint8(FIELD_OFFSET.COUNT);
+  const measurements = readKnownMeasurements(view, count);
   return {
     type: view.getUint8(FIELD_OFFSET.TYPE) as FrameType,
     deviceId: view.getUint16(FIELD_OFFSET.DEVICE_ID),
     seq: view.getUint32(FIELD_OFFSET.SEQ),
     uptimeMs: view.getUint32(FIELD_OFFSET.UPTIME_MS),
-    measurements: readKnownMeasurements(view, view.getUint8(FIELD_OFFSET.COUNT)),
+    measurements,
+    skippedMeasurements: count - measurements.length,
   };
 }
 

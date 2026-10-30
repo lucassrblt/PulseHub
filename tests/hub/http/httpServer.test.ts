@@ -7,7 +7,8 @@ import { SnapshotBroadcaster } from "../../../src/hub/http/snapshotBroadcaster.j
 import { StaticFileHandler } from "../../../src/hub/http/staticFiles.js";
 import { FakeProvider, FakeTimer, emptySnapshot } from "./fakes.js";
 
-const ANY_FREE_PORT = 0;
+const LOOPBACK = "127.0.0.1";
+const ANY_FREE_ADDRESS = { host: LOOPBACK, port: 0 };
 const INTERVAL_MS = 250;
 const INDEX_HTML = "<!doctype html><title>PulseHub</title>";
 const SSE_PREFIX = "data: ";
@@ -16,23 +17,29 @@ describe("HttpServer", () => {
   let publicDir: string;
   let server: HttpServer;
   let baseUrl: string;
+  let timer: FakeTimer;
 
   beforeEach(async () => {
     publicDir = await mkdtemp(join(tmpdir(), "pulsehub-public-"));
     await writeFile(join(publicDir, "index.html"), INDEX_HTML);
     await writeFile(join(publicDir, "secret.txt"), "secret");
-    const events = new SnapshotBroadcaster(new FakeProvider(), new FakeTimer(), INTERVAL_MS);
+    timer = new FakeTimer();
+    const events = new SnapshotBroadcaster(new FakeProvider(), timer, INTERVAL_MS);
     server = new HttpServer(
-      ANY_FREE_PORT,
+      ANY_FREE_ADDRESS,
       { files: new StaticFileHandler(publicDir), events },
       { info: vi.fn(), error: vi.fn() },
     );
-    baseUrl = `http://localhost:${await server.start()}`;
+    baseUrl = `http://${LOOPBACK}:${await server.start()}`;
   });
 
   afterEach(async () => {
     await server.stop();
     await rm(publicDir, { recursive: true, force: true });
+  });
+
+  it("leaves starting the snapshot stream to its owner", () => {
+    expect(timer.pending).toBe(0);
   });
 
   it("serves the dashboard page on /", async () => {
@@ -61,7 +68,7 @@ describe("HttpServer", () => {
 
   it("stops without error when never started", async () => {
     const events = new SnapshotBroadcaster(new FakeProvider(), new FakeTimer(), INTERVAL_MS);
-    const idle = new HttpServer(ANY_FREE_PORT, { files: new StaticFileHandler(publicDir), events }, {
+    const idle = new HttpServer(ANY_FREE_ADDRESS, { files: new StaticFileHandler(publicDir), events }, {
       info: vi.fn(),
       error: vi.fn(),
     });

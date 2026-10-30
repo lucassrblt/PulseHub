@@ -21,6 +21,8 @@ const HEALTHY: DeviceState = {
   duplicates: 0,
   late: 0,
   reboots: 0,
+  resyncs: 0,
+  outOfRange: 0,
 };
 
 describe("worstLevel", () => {

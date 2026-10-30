@@ -1,4 +1,4 @@
-import type { Clock } from "../../src/hub/clock.js";
+import type { Clock } from "../../src/shared/time.js";
 
 /** Manually driven clock for time-based tests. */
 export class FakeClock implements Clock {

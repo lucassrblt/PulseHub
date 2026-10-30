@@ -1,3 +1,4 @@
+import { MS_PER_SECOND, intervalTimer, monotonicClock, type Clock } from "../shared/time.js";
 import { parseCli, usage, type SimulatorConfig } from "./config.js";
 import { createDevices } from "./device.js";
 import { AnomalyFault } from "./faults/anomaly.js";
@@ -8,15 +9,15 @@ import { RebootFault } from "./faults/reboot.js";
 import { ReorderFault } from "./faults/reorder.js";
 import type { FaultStage } from "./faults/stage.js";
 import { StopFault, pickStoppedIds } from "./faults/stop.js";
-import { MS_PER_SECOND } from "./limits.js";
-import type { Clock, Random } from "./ports.js";
+import type { Random } from "./ports.js";
 import { Simulator } from "./simulator.js";
 import { StatsReporter } from "./stats.js";
-import { intervalTimer, mathRandom, systemClock } from "./system.js";
-import { UdpSender } from "./udp-sender.js";
+import { mathRandom } from "./system.js";
+import { UdpSender } from "./udpSender.js";
 import { NOMINAL_WALKS } from "./walk.js";
 
 const EXIT_INVALID_ARGS = 2;
+const SHUTDOWN_SIGNALS = ["SIGINT", "SIGTERM"] as const;
 
 function stoppedIds(config: SimulatorConfig, random: Random): number[] {
   return config.stopIds.length > 0
@@ -57,7 +58,7 @@ function summary(config: SimulatorConfig, ids: readonly number[]): string {
 }
 
 function run(config: SimulatorConfig): void {
-  const clock = systemClock;
+  const clock = monotonicClock;
   const random = mathRandom;
   const ids = stoppedIds(config, random);
   const stages = buildStages(config, ids, random, clock);
@@ -86,11 +87,17 @@ function run(config: SimulatorConfig): void {
   simulator.start();
   const stopStats = intervalTimer.every(config.statsIntervalMs, () => console.log(stats.rateLine()));
 
-  process.once("SIGINT", () => {
+  let stopping = false;
+  const shutdown = (): void => {
+    if (stopping) {
+      return;
+    }
+    stopping = true;
     simulator.stop();
     stopStats();
     void sender.close().then(() => console.log(stats.totalsLine()));
-  });
+  };
+  SHUTDOWN_SIGNALS.forEach((signal) => process.once(signal, shutdown));
 }
 
 const parsed = parseCli(process.argv.slice(2), process.env);

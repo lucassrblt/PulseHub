@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { ReceptionStats, type ReceptionSettings } from "../../src/hub/receptionStats.js";
 import { FakeClock } from "./fakeClock.js";
 
-const SETTINGS: ReceptionSettings = { rateWindowMs: 1000, lossWarnPct: 1, lossCritPct: 5 };
+const SETTINGS: ReceptionSettings = { rateWindowMs: 1000, healthWindowMs: 10_000, lossWarnPct: 1, lossCritPct: 5 };
+
+const ACCEPTED = { kind: "accepted", lost: 0, rebooted: false, resynced: false } as const;
 
 function receiveAccepted(stats: ReceptionStats, times: number, lost = 0): void {
   for (let index = 0; index < times; index++) {
     stats.recordReceived();
-    stats.recordVerdict({ kind: "accepted", lost: index === 0 ? lost : 0, rebooted: false });
+    stats.recordVerdict({ ...ACCEPTED, lost: index === 0 ? lost : 0 });
   }
 }
 
@@ -30,6 +32,8 @@ describe("ReceptionStats", () => {
       duplicates: 0,
       late: 0,
       lost: 0,
+      resyncs: 0,
+      unknownMetrics: 0,
       framesPerSecond: 0,
       lossRatePct: 0,
       invalidRatePct: 0,
@@ -52,12 +56,20 @@ describe("ReceptionStats", () => {
     expect(summary.invalidByReason).toEqual({ BAD_CHECKSUM: 2, TOO_SHORT: 1 });
   });
 
+  it("adds up the unknown metrics", () => {
+    stats.recordUnknownMetrics(2);
+    stats.recordUnknownMetrics(0);
+    stats.recordUnknownMetrics(1);
+    expect(stats.summary().unknownMetrics).toBe(3);
+  });
+
   it("counts each verdict kind", () => {
-    stats.recordVerdict({ kind: "accepted", lost: 2, rebooted: false });
+    stats.recordVerdict({ ...ACCEPTED, lost: 2 });
+    stats.recordVerdict({ ...ACCEPTED, resynced: true });
     stats.recordVerdict({ kind: "duplicate" });
     stats.recordVerdict({ kind: "late" });
     stats.recordVerdict({ kind: "late" });
-    expect(stats.summary()).toMatchObject({ accepted: 1, lost: 2, duplicates: 1, late: 2 });
+    expect(stats.summary()).toMatchObject({ accepted: 2, lost: 2, resyncs: 1, duplicates: 1, late: 2 });
   });
 
   it("computes the loss rate as lost over accepted plus lost", () => {
@@ -68,9 +80,9 @@ describe("ReceptionStats", () => {
   it("reports OK, WARN and CRIT health from the loss rate", () => {
     receiveAccepted(stats, 1000);
     expect(stats.summary().health).toBe("OK");
-    stats.recordVerdict({ kind: "accepted", lost: 20, rebooted: false });
+    stats.recordVerdict({ ...ACCEPTED, lost: 20 });
     expect(stats.summary().health).toBe("WARN");
-    stats.recordVerdict({ kind: "accepted", lost: 60, rebooted: false });
+    stats.recordVerdict({ ...ACCEPTED, lost: 60 });
     expect(stats.summary().health).toBe("CRIT");
   });
 
@@ -80,6 +92,28 @@ describe("ReceptionStats", () => {
     stats.recordInvalid("BAD_MAGIC");
     expect(stats.summary().invalidRatePct).toBe(10);
     expect(stats.summary().health).toBe("CRIT");
+  });
+
+  it("recovers OK health once a loss burst has left the health window", () => {
+    receiveAccepted(stats, 100, 50);
+    expect(stats.summary().health).toBe("CRIT");
+    clock.advance(SETTINGS.healthWindowMs);
+    receiveAccepted(stats, 10);
+    expect(stats.summary()).toMatchObject({ lost: 50, accepted: 110, lossRatePct: 0, health: "OK" });
+  });
+
+  it("recovers OK health once an invalid burst has left the health window", () => {
+    stats.recordReceived();
+    stats.recordInvalid("BAD_CHECKSUM");
+    expect(stats.summary().health).toBe("CRIT");
+    clock.advance(SETTINGS.healthWindowMs);
+    expect(stats.summary()).toMatchObject({ invalid: 1, invalidRatePct: 0, health: "OK" });
+  });
+
+  it("reports zero rates and OK health when the window holds no traffic", () => {
+    receiveAccepted(stats, 10, 10);
+    clock.advance(SETTINGS.healthWindowMs);
+    expect(stats.summary()).toMatchObject({ lossRatePct: 0, invalidRatePct: 0, health: "OK" });
   });
 
   it("measures frames per second over the sliding window", () => {

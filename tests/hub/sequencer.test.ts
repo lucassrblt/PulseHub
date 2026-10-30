@@ -4,12 +4,13 @@ import { Sequencer, type SequenceVerdict } from "../../src/hub/sequencer.js";
 const DEVICE_A = 7;
 const DEVICE_B = 8;
 const UINT32_MAX = 0xffffffff;
-const HALF_RANGE = 2 ** 31;
+const UPPER_HALF_SEQ = 3_000_000_000;
 const REBOOT_DROP_MS = 1000;
+const MAX_GAP = 1000;
 const FRAME_PERIOD_MS = 100;
 
 function newSequencer(): Sequencer {
-  return new Sequencer(REBOOT_DROP_MS);
+  return new Sequencer({ rebootUptimeDropMs: REBOOT_DROP_MS, maxSeqGap: MAX_GAP });
 }
 
 function check(sequencer: Sequencer, deviceId: number, seq: number, uptimeMs = 0): SequenceVerdict {
@@ -21,8 +22,10 @@ function run(sequencer: Sequencer, deviceId: number, seqs: readonly number[]): S
 }
 
 function accepted(lost: number, rebooted = false): SequenceVerdict {
-  return { kind: "accepted", lost, rebooted };
+  return { kind: "accepted", lost, rebooted, resynced: false };
 }
+
+const RESYNCED: SequenceVerdict = { kind: "accepted", lost: 0, rebooted: false, resynced: true };
 
 function count(verdicts: readonly SequenceVerdict[], kind: SequenceVerdict["kind"]): number {
   return verdicts.filter((verdict) => verdict.kind === kind).length;
@@ -75,10 +78,42 @@ describe("Sequencer", () => {
     it("discards a frame from before the wrap as late", () => {
       expect(run(newSequencer(), DEVICE_A, [UINT32_MAX - 1, 1, UINT32_MAX])[2]).toEqual({ kind: "late" });
     });
+  });
 
-    it("considers a seq half the range away or more as late", () => {
-      expect(run(newSequencer(), DEVICE_A, [0, HALF_RANGE])[1]).toEqual({ kind: "late" });
-      expect(run(newSequencer(), DEVICE_A, [0, HALF_RANGE - 1])[1]).toEqual(accepted(HALF_RANGE - 2));
+  describe("resync", () => {
+    it("counts a gap up to the maximum as lost", () => {
+      expect(run(newSequencer(), DEVICE_A, [1, 1 + MAX_GAP])[1]).toEqual(accepted(MAX_GAP - 1));
+    });
+
+    it("resyncs on a jump ahead beyond the maximum gap without counting losses", () => {
+      const verdicts = run(newSequencer(), DEVICE_A, [1, 2 + MAX_GAP, 3 + MAX_GAP]);
+      expect(verdicts).toEqual([accepted(0), RESYNCED, accepted(0)]);
+    });
+
+    it("keeps accepting frames after a huge jump instead of classing them late", () => {
+      const verdicts = run(newSequencer(), DEVICE_A, [1, UPPER_HALF_SEQ, UPPER_HALF_SEQ + 1, UPPER_HALF_SEQ + 2]);
+      expect(verdicts.slice(1)).toEqual([RESYNCED, accepted(0), accepted(0)]);
+    });
+
+    it("discards a seq up to the maximum gap behind as late", () => {
+      expect(run(newSequencer(), DEVICE_A, [5000, 5000 - MAX_GAP])[1]).toEqual({ kind: "late" });
+    });
+
+    it("resyncs when the seq drops back beyond the maximum gap", () => {
+      const verdicts = run(newSequencer(), DEVICE_A, [5000, 1, 2]);
+      expect(verdicts.slice(1)).toEqual([RESYNCED, accepted(0)]);
+    });
+
+    it("resyncs on a seq reset to 0 from the upper half when the uptime drop is too small for a reboot", () => {
+      const sequencer = newSequencer();
+      check(sequencer, DEVICE_A, UPPER_HALF_SEQ, REBOOT_DROP_MS / 2);
+      expect(check(sequencer, DEVICE_A, 0, FRAME_PERIOD_MS)).toEqual(RESYNCED);
+      expect(check(sequencer, DEVICE_A, 1, 2 * FRAME_PERIOD_MS)).toEqual(accepted(0));
+    });
+
+    it("keeps small gaps across the wrap unchanged", () => {
+      expect(run(newSequencer(), DEVICE_A, [UINT32_MAX - 1, 2])[1]).toEqual(accepted(3));
+      expect(run(newSequencer(), DEVICE_A, [1, UINT32_MAX])[1]).toEqual({ kind: "late" });
     });
   });
 

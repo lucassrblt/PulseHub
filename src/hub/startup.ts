@@ -1,3 +1,9 @@
+/** Host and port a server listens on. */
+export interface ListenAddress {
+  readonly host: string;
+  readonly port: number;
+}
+
 /** A server that binds a port on start and releases it on stop. */
 export interface Service {
   start(): Promise<number>;

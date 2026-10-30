@@ -7,6 +7,9 @@ export interface DeviceReadings {
   readonly currentMa: number | null;
 }
 
+/** Readings of a device before any metric has been received. */
+export const NO_READINGS: DeviceReadings = { temperatureC: null, voltageMv: null, currentMa: null };
+
 const HUNDREDTHS_PER_DEGREE = 100;
 
 const READING_OF_METRIC: Readonly<Record<MetricId, (value: number) => Partial<DeviceReadings>>> = {

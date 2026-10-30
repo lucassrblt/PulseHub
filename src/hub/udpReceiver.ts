@@ -1,5 +1,6 @@
 import { createSocket, type Socket } from "node:dgram";
 import type { Logger } from "./logger.js";
+import type { ListenAddress } from "./startup.js";
 
 /** Callback invoked with the bytes of every received datagram. */
 export type DatagramHandler = (bytes: Uint8Array) => void;
@@ -9,12 +10,12 @@ export class UdpReceiver {
   private socket: Socket | undefined;
 
   constructor(
-    private readonly port: number,
+    private readonly address: ListenAddress,
     private readonly handler: DatagramHandler,
     private readonly logger: Logger,
   ) {}
 
-  /** Binds the socket and resolves with the bound port. */
+  /** Binds the socket to the address and resolves with the bound port. */
   start(): Promise<number> {
     const socket = createSocket("udp4");
     this.socket = socket;
@@ -26,7 +27,7 @@ export class UdpReceiver {
         reject(error);
       };
       socket.once("error", failBind);
-      socket.bind(this.port, () => {
+      socket.bind(this.address.port, this.address.host, () => {
         socket.off("error", failBind);
         socket.on("error", (error) => this.logger.error(`udp socket error: ${error.message}`));
         resolve(socket.address().port);

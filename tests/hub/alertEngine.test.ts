@@ -20,6 +20,8 @@ const NOMINAL: DeviceState = {
   duplicates: 0,
   late: 0,
   reboots: 0,
+  resyncs: 0,
+  outOfRange: 0,
 };
 const OVERHEATED: DeviceState = { ...NOMINAL, temperatureC: 75 };
 
@@ -29,12 +31,16 @@ describe("AlertEngine", () => {
 
   beforeEach(() => {
     clock = new FakeClock();
-    engine = new AlertEngine(clock, buildAlertRules(CONFIG), CONFIG.alertDurationMs);
+    engine = new AlertEngine(clock, buildAlertRules(CONFIG), CONFIG);
   });
+
+  function report(device: DeviceState): void {
+    engine.evaluate({ ...device, lastSeenMs: clock.now() });
+  }
 
   function overheatFor(ms: number): void {
     for (let elapsed = 0; elapsed < ms; elapsed += SECOND) {
-      engine.evaluate(OVERHEATED);
+      report(OVERHEATED);
       clock.advance(SECOND);
     }
   }
@@ -44,7 +50,7 @@ describe("AlertEngine", () => {
   });
 
   it("raises no alert before the condition held for 3 s", () => {
-    engine.evaluate(OVERHEATED);
+    report(OVERHEATED);
     clock.advance(CONFIG.alertDurationMs - 1);
     expect(engine.active()).toEqual([]);
   });
@@ -55,7 +61,7 @@ describe("AlertEngine", () => {
       {
         deviceId: 3,
         ruleId: "temperature-critical",
-        label: "Temperature above 70 °C",
+        label: "Temperature at or above 70 °C",
         sinceMs: 0,
         durationMs: CONFIG.alertDurationMs,
       },
@@ -64,25 +70,52 @@ describe("AlertEngine", () => {
 
   it("clears the alert when the value comes back", () => {
     overheatFor(CONFIG.alertDurationMs);
-    engine.evaluate(NOMINAL);
+    report(NOMINAL);
     expect(engine.active()).toEqual([]);
   });
 
   it("restarts the duration after an interruption", () => {
     overheatFor(2 * SECOND);
-    engine.evaluate(NOMINAL);
+    report(NOMINAL);
     overheatFor(2 * SECOND);
     expect(engine.active()).toEqual([]);
   });
 
   it("tracks devices and rules independently", () => {
-    engine.evaluate(OVERHEATED);
-    engine.evaluate({ ...NOMINAL, deviceId: 1, voltageMv: 20000, currentMa: 11000 });
-    clock.advance(CONFIG.alertDurationMs);
+    for (let elapsed = 0; elapsed <= CONFIG.alertDurationMs; elapsed += SECOND) {
+      report(OVERHEATED);
+      report({ ...NOMINAL, deviceId: 1, voltageMv: 20000, currentMa: 11000 });
+      clock.advance(SECOND);
+    }
     expect(engine.active().map((alert) => [alert.deviceId, alert.ruleId])).toEqual([
       [1, "overcurrent"],
       [1, "voltage-out-of-range"],
       [3, "temperature-critical"],
     ]);
+  });
+
+  it("never raises an alert for a one-frame anomaly followed by silence", () => {
+    report(OVERHEATED);
+    for (let elapsed = 0; elapsed <= 2 * CONFIG.alertDurationMs; elapsed += SECOND) {
+      expect(engine.active()).toEqual([]);
+      clock.advance(SECOND);
+    }
+  });
+
+  it("hides the alert of a device once it is offline", () => {
+    overheatFor(CONFIG.alertDurationMs);
+    report(OVERHEATED);
+    expect(engine.active()).toHaveLength(1);
+    clock.advance(CONFIG.offlineAfterMs + 1);
+    expect(engine.active()).toEqual([]);
+  });
+
+  it("starts a fresh duration when an offline device comes back", () => {
+    overheatFor(CONFIG.alertDurationMs);
+    clock.advance(CONFIG.offlineAfterMs + 1);
+    const backAtMs = clock.now();
+    overheatFor(CONFIG.alertDurationMs);
+    report(OVERHEATED);
+    expect(engine.active()).toMatchObject([{ sinceMs: backAtMs, durationMs: CONFIG.alertDurationMs }]);
   });
 });
