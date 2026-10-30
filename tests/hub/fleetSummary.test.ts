@@ -12,7 +12,7 @@ import { NOMINAL, telemetry } from "./frames.js";
 
 const CONFIG = loadConfig({});
 const STARTED_AT = 50_000;
-const ACCEPTED = { kind: "accepted", lost: 0 } as const;
+const ACCEPTED = { kind: "accepted", lost: 0, rebooted: false } as const;
 
 describe("FleetSummary", () => {
   let clock: FakeClock;

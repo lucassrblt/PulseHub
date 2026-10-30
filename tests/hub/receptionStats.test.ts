@@ -7,7 +7,7 @@ const SETTINGS: ReceptionSettings = { rateWindowMs: 1000, lossWarnPct: 1, lossCr
 function receiveAccepted(stats: ReceptionStats, times: number, lost = 0): void {
   for (let index = 0; index < times; index++) {
     stats.recordReceived();
-    stats.recordVerdict({ kind: "accepted", lost: index === 0 ? lost : 0 });
+    stats.recordVerdict({ kind: "accepted", lost: index === 0 ? lost : 0, rebooted: false });
   }
 }
 
@@ -53,7 +53,7 @@ describe("ReceptionStats", () => {
   });
 
   it("counts each verdict kind", () => {
-    stats.recordVerdict({ kind: "accepted", lost: 2 });
+    stats.recordVerdict({ kind: "accepted", lost: 2, rebooted: false });
     stats.recordVerdict({ kind: "duplicate" });
     stats.recordVerdict({ kind: "late" });
     stats.recordVerdict({ kind: "late" });
@@ -68,9 +68,9 @@ describe("ReceptionStats", () => {
   it("reports OK, WARN and CRIT health from the loss rate", () => {
     receiveAccepted(stats, 1000);
     expect(stats.summary().health).toBe("OK");
-    stats.recordVerdict({ kind: "accepted", lost: 20 });
+    stats.recordVerdict({ kind: "accepted", lost: 20, rebooted: false });
     expect(stats.summary().health).toBe("WARN");
-    stats.recordVerdict({ kind: "accepted", lost: 60 });
+    stats.recordVerdict({ kind: "accepted", lost: 60, rebooted: false });
     expect(stats.summary().health).toBe("CRIT");
   });
 

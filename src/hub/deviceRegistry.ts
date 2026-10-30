@@ -56,6 +56,7 @@ export class DeviceRegistry implements DeviceRecorder, DeviceSource {
       uptimeMs: frame.uptimeMs,
       lastSeq: frame.seq,
       lost: device.lost + verdict.lost,
+      reboots: verdict.rebooted ? device.reboots + 1 : device.reboots,
     };
   }
 

@@ -1,11 +1,13 @@
 import { FRAME_TYPE, METRIC_ID, type Frame } from "../../src/protocol/index.js";
 
+const FRAME_PERIOD_MS = 100;
+
 /** Telemetry frame with temperature in tenths of a degree, voltage in mV and current in mA. */
 export function telemetry(
   deviceId: number,
   seq: number,
   readings: { readonly tenthsC: number; readonly mv: number; readonly ma: number },
-  uptimeMs = seq * 1000,
+  uptimeMs = seq * FRAME_PERIOD_MS,
 ): Frame {
   return {
     type: FRAME_TYPE.TELEMETRY,
@@ -21,7 +23,7 @@ export function telemetry(
 }
 
 /** Heartbeat frame without measurements. */
-export function heartbeat(deviceId: number, seq: number, uptimeMs = seq * 1000): Frame {
+export function heartbeat(deviceId: number, seq: number, uptimeMs = seq * FRAME_PERIOD_MS): Frame {
   return { type: FRAME_TYPE.HEARTBEAT, deviceId, seq, uptimeMs, measurements: [] };
 }
 
